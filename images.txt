@@ -1,0 +1,2 @@
+/path/to/image_screen_0.png
+/path/to/image_screen_1.jpg
