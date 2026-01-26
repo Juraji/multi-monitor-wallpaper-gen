@@ -81,15 +81,15 @@ def __get_xrandr_screens() -> ScreenLayout:
         if not 'x' in dim_str:
             continue
 
-        x_index = dim_str.index('x')
-        plus1_index = dim_str.index('+', x_index)
-        plus2_index = dim_str.index('+', plus1_index + 1)
+        parts = dim_str.replace('x', '+').split('+')
+        if len(parts) != 4:
+            continue
 
         try:
-            width = int(dim_str[:x_index].split('/')[0])
-            height = int(dim_str[x_index + 1:plus1_index].split('/')[0])
-            x_pos = int(dim_str[plus1_index + 1:plus2_index])
-            y_pos = int(dim_str[plus2_index + 1:])
+            width = int(parts[0].split('/')[0])
+            height = int(parts[1].split('/')[0])
+            x_pos = int(parts[2])
+            y_pos = int(parts[3])
         except ValueError:
             continue
 
