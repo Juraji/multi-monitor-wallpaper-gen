@@ -1,3 +1,4 @@
+import platform
 import subprocess
 
 
@@ -7,7 +8,7 @@ class Screen:
     x_pos: int
     y_pos: int
 
-    def __init__(self, width, height, x_pos, y_pos):
+    def __init__(self, width: int, height: int, x_pos: int, y_pos: int):
         self.width = width
         self.height = height
         self.x_pos = x_pos
@@ -16,8 +17,37 @@ class Screen:
     def __repr__(self):
         return f"Screen(width={self.width}, height={self.height}, x_pos={self.x_pos}, y_pos={self.y_pos})"
 
+class ScreenLayout:
+    screens: list[Screen]
+    min_x: int
+    min_y: int
+    max_x: int
+    max_y: int
+    total_width: int
+    total_height: int
 
-def get_xrandr_screens() -> list[Screen]:
+    def __init__(self, screens: list[Screen]):
+        screens.sort(key=lambda s: (s.y_pos, s.x_pos))
+        self.screens = screens
+        self.min_x = min(s.x_pos for s in screens)
+        self.min_y = min(s.y_pos for s in screens)
+        self.max_x = max(s.x_pos + s.width for s in screens)
+        self.max_y = max(s.y_pos + s.height for s in screens)
+        self.total_width = int(self.max_x - self.min_x)
+        self.total_height = int(self.max_y - self.min_y)
+
+
+def get_screen_layout_from_compositor() -> ScreenLayout:
+    if platform.system() == "Linux":
+        try:
+            return __get_xrandr_screens()
+        except ImportError:
+            raise RuntimeError("Unsupported display compositor: X11 not available")
+    else:
+        raise RuntimeError("Unsupported OS or display compositor")
+
+
+def __get_xrandr_screens() -> ScreenLayout:
     """
     Retrieve the list of active screens using xrandr command.
 
@@ -65,5 +95,4 @@ def get_xrandr_screens() -> list[Screen]:
 
         screens.append(Screen(width, height, x_pos, y_pos))
 
-    screens.sort(key=lambda s: (s.y_pos, s.x_pos))
-    return screens
+    return ScreenLayout(screens)

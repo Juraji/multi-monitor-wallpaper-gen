@@ -1,100 +1,167 @@
+from argparse import ArgumentParser, ArgumentTypeError
+from pathlib import Path
+
 from PIL import Image
 from PIL.Image import Resampling
 
-from screen import get_xrandr_screens
+from screen import Screen, ScreenLayout
 
-BG_COLOR = 'black'
-IMAGE_SRC = './images.txt'
-OUTPUT_IMG = "./wallpaper.jpg"
+
+def parse_monitor_arg(value: str) -> Screen:
+    try:
+        parts = value.replace('x', '+').split('+')
+        if len(parts) != 4:
+            raise ValueError
+
+        return Screen(
+            width=int(parts[0]),
+            height=int(parts[1]),
+            x_pos=int(parts[2]),
+            y_pos=int(parts[3])
+        )
+    except Exception:
+        raise ArgumentTypeError(f"Monitor must be in format WidthxHeight+OffsetX+OffsetY, got {value}.")
+
+
+def parse_images_arg(value: str) -> dict[str, list[Path]]:
+    try:
+        with open(value, 'r') as f:
+            lines = [line.strip() for line in f.readlines() if line.strip() != '']
+
+        if not lines:
+            raise ValueError("File is empty or contains only empty lines. Must start with a title like '# [title]'")
+
+        if not lines[0].startswith('#'):
+            raise ValueError(f"First non-empty line must be a title, like '# [title]'. Found: '{lines[0]}'")
+
+        image_sets = {}
+        current_title = None
+
+        for line in lines:
+            if line.startswith('#'):
+                title = line[1:].strip().replace('%d', str(len(image_sets) + 1))
+                if title in image_sets:
+                    raise ValueError(f'Duplicate title in images list "{title}"')
+                current_title = title
+                image_sets[title] = []
+            else:
+                if current_title is None:
+                    raise ValueError(f"Path specified without preceding title: '{line}'")
+                p = Path(line)
+                if not p.exists():
+                    raise ValueError(f"Path '{line}' does not exist")
+                image_sets[current_title].append(p)
+
+        for title, paths in image_sets.items():
+            if len(paths) == 0:
+                raise ValueError(f"Set '{title}' has no images. Each set must contain at least one path")
+
+        return image_sets
+
+    except FileNotFoundError:
+        raise ArgumentTypeError(f"Images file {value} not found.")
+    except ValueError as pe:
+        raise ArgumentTypeError(f"Error parsing {value}: {pe}.")
+
+
+def parse_output_dir_arg(value: str) -> Path:
+    p = Path(value)
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def render_image_set(images: list[Path],
+                     layout: ScreenLayout,
+                     background: str,
+                     outpath: Path):
+    base_image = Image.new('RGB', (layout.total_width, layout.total_height), color=background)
+
+    for i, s in enumerate(layout.screens):
+        if i >= len(images):
+            break  # No more images to use
+        image_path = images[i]
+        image = Image.open(image_path)  # Could fail if path is not an image, but we'll just let the error bubble up.
+
+        img_x_pos = int(s.x_pos - screen_layout.min_x)
+        img_y_pos = int(s.y_pos - screen_layout.min_y)
+
+        img_aspect = image.width / image.height
+        screen_aspect = s.width / s.height
+
+        if img_aspect > screen_aspect:
+            new_width = int(s.height * img_aspect)
+            new_height = s.height
+        else:
+            new_width = s.width
+            new_height = int(s.width / img_aspect)
+
+        image = image.resize((new_width, new_height), Resampling.LANCZOS)
+
+        left_crop = (new_width - s.width) // 2
+        top_crop = (new_height - s.height) // 2
+        right_crop = left_crop + s.width
+        bottom_crop = top_crop + s.height
+
+        image.crop((left_crop, top_crop, right_crop, bottom_crop))
+        base_image.paste(image, (img_x_pos, img_y_pos))
+
+    base_image.save(outpath)
+
 
 if __name__ == '__main__':
-    # Read and validate image paths from file
-    try:
-        with open(IMAGE_SRC, 'r') as f:
-            images = [line.strip() for line in f.readlines() if line.strip()]
-        print(f"Found {len(images)} valid image paths")
-    except FileNotFoundError:
-        print(f"Error: {IMAGE_SRC} not found.")
-        exit(1)
-    except Exception as e:
-        print(f"Error reading {IMAGE_SRC}: {e}")
-        exit(1)
+    # Parse arguments
+    arg_parser = ArgumentParser(description='Batch generate multi-monitor wallpapers')
+    arg_parser.add_argument(
+        '-i', '--images',
+        default='./images.txt',
+        type=parse_images_arg,
+        help='The TXT file with paths to the images to use. One image per line, separated by "# [title]" per image set. Defaults to "./images.txt".')
+    arg_parser.add_argument(
+        '-o', '--output-dir',
+        default='./generated',
+        type=parse_output_dir_arg,
+        help='The directory to output the generated images to. Defaults to "./generated"'
+    )
+    arg_parser.add_argument(
+        '-m', '--monitor',
+        action='append',
+        type=parse_monitor_arg,
+        required=False,
+        help='The coordinates of the monitor(s). Can be specified multiple times. Defaults to all monitors reported by the desktop compositor.'
+    )
+    arg_parser.add_argument(
+        '-b', '--background',
+        default='black',
+        help='The background color of the wallpaper for areas without images. Defaults to "black".'
+    )
+    arg_parser.add_argument(
+        '-t', '--type',
+        default='jpg',
+        choices=['jpg', 'png'],
+        help='The type of output images. Defaults to "jpg".'
+    )
 
-    # Get active screens configuration
-    try:
-        screens = get_xrandr_screens()
-        print(f"Found {len(screens)} active screens: {screens}")
-    except RuntimeError as e:
-        print(f"Error getting screen information: {e}")
-        exit(1)
-    except Exception as e:
-        print(f"Unexpected error getting screens: {e}")
-        exit(1)
+    args = arg_parser.parse_args()
 
-    # Check if we have enough images for all screens and vice versa, else print a warning.
-    if len(screens) > len(images):
-        print(f"Warning: More screens ({len(screens)}) than images. Extra screens will use background color.")
-    elif len(images) > len(screens):
-        print(f"Info: More images ({len(images)}) than screens ({len(screens)}). Extra images will be ignored.")
-
-    # Calculate total dimensions needed for the combined image
-    min_x = min(s.x_pos for s in screens)
-    min_y = min(s.y_pos for s in screens)
-    max_x = max(s.x_pos + s.width for s in screens)
-    max_y = max(s.y_pos + s.height for s in screens)
-    total_width = int(max_x - min_x)
-    total_height = int(max_y - min_y)
-
-    print(f"Total screen area: {total_width}x{total_height}")
-
-    base_image = Image.new('RGB', (total_width, total_height), color=BG_COLOR)
-
-    for index, screen in enumerate(screens):
-        if index >= len(images):
-            break  # No more images to use
-        image_path = images[index]
-
-        print(f"Processing '{image_path}' for screen {index}...")
+    if not args.monitor:
+        from screen import get_screen_layout_from_compositor
 
         try:
-            img = Image.open(image_path)
+            screen_layout = get_screen_layout_from_compositor()
         except Exception as e:
-            print(f"Warning: Could not open {image_path}. Error: {e}")
-            continue  # Skip to next screen if image fails to load
+            print(f"Error: No monitors specified and failed to detect them: {e}")
+            exit(1)
+    else:
+        screen_layout = ScreenLayout(args.monitor)
 
-        # Calculate position on base image
-        left = int(screen.x_pos - min_x)
-        top = int(screen.y_pos - min_y)
+    print(f'Rendering {len(args.images)} images to {args.output_dir}...')
+    print(f'Screens: {len(screen_layout.screens)}, '
+          f'layout width: {screen_layout.total_width}, '
+          f'layout height: {screen_layout.total_height}.')
 
-        img_aspect = img.width / img.height
-        screen_aspect = screen.width / screen.height
+    for set_title, images in args.images.items():
+        outpath = args.output_dir / f'{set_title}.{args.type}'
+        print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
+        render_image_set(images, screen_layout, args.background, outpath)
 
-        # Resize maintaining aspect ratio to fit screen dimensions
-        if img_aspect > screen_aspect:
-            new_width = int(screen.height * img_aspect)
-            new_height = screen.height
-        else:
-            new_width = screen.width
-            new_height = int(screen.width / img_aspect)
-
-            print(f"Resizing image to {new_width}x{new_height}...")
-        img = img.resize((new_width, new_height), Resampling.LANCZOS)
-
-        # Center crop the resized image to match screen dimensions
-        left_crop = (new_width - screen.width) // 2
-        top_crop = (new_height - screen.height) // 2
-        right_crop = left_crop + screen.width
-        bottom_crop = top_crop + screen.height
-
-        print("Cropping image to cover area...")
-        img = img.crop((left_crop, top_crop, right_crop, bottom_crop))
-
-        print("Pasting image...")
-        print(f"Pasting image at position ({left}, {top})...")
-        base_image.paste(img, (left, top))
-
-        print(f"Image for screen {index} completed.")
-        print()
-
-    base_image.save(OUTPUT_IMG)
-    print(f"Wallpaper saved to {OUTPUT_IMG}")
+    print("Done.")
