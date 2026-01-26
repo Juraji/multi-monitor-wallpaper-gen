@@ -140,6 +140,12 @@ if __name__ == '__main__':
         choices=['jpg', 'png'],
         help='The type of output images. Defaults to "jpg".'
     )
+    arg_parser.add_argument(
+        '-c', '--clear',
+        action='store_true',
+        default=True,
+        help='Clear the output directory before generating new images.'
+    )
 
     args = arg_parser.parse_args()
 
@@ -158,6 +164,13 @@ if __name__ == '__main__':
     print(f'Screens: {len(screen_layout.screens)}, '
           f'layout width: {screen_layout.total_width}, '
           f'layout height: {screen_layout.total_height}.')
+
+    if args.clear:
+        print("Clearing output directory...")
+        for file in args.output_dir.glob('*'):
+            if file.is_file():
+                file.unlink()
+        print(f"Cleared output directory {args.output_dir}.")
 
     for set_title, images in args.images.items():
         outpath = args.output_dir / f'{set_title}.{args.type}'
