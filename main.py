@@ -39,7 +39,10 @@ def parse_images_arg(value: str) -> dict[str, list[Path]]:
 
         for line in lines:
             if line.startswith('#'):
-                title = line[1:].strip().replace('%d', str(len(image_sets) + 1))
+                set_no = len(image_sets) + 1
+                title = line[1:].strip().replace('%d', str(set_no))
+                if not title:
+                    raise ValueError(f"Set '{title}' has no title, each set must have a unique title")
                 if title in image_sets:
                     raise ValueError(f'Duplicate title in images list "{title}"')
                 current_title = title
