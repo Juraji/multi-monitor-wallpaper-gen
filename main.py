@@ -174,6 +174,9 @@ if __name__ == '__main__':
             if file.is_file():
                 file.unlink()
         print(f"Cleared output directory {args.output_dir}.")
+    elif not args.outputdir.is_empty():
+        print(f'Target directory "{args.output_dir}" is not empty.')
+        exit(0) # We should not continue!
 
     for set_title, images in args.images.items():
         outpath = args.output_dir / f'{set_title}.{args.type}'
