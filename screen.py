@@ -17,6 +17,7 @@ class Screen:
     def __repr__(self):
         return f"Screen(width={self.width}, height={self.height}, x_pos={self.x_pos}, y_pos={self.y_pos})"
 
+
 class ScreenLayout:
     screens: list[Screen]
     min_x: int
@@ -39,12 +40,9 @@ class ScreenLayout:
 
 def get_screen_layout_from_compositor() -> ScreenLayout:
     if platform.system() == "Linux":
-        try:
-            return __get_xrandr_screens()
-        except ImportError:
-            raise RuntimeError("Unsupported display compositor: X11 not available")
+        return __get_xrandr_screens()
     else:
-        raise RuntimeError("Unsupported OS or display compositor")
+        raise UnableToGetScreenLayoutException("Unsupported OS or display compositor")
 
 
 def __get_xrandr_screens() -> ScreenLayout:
@@ -67,7 +65,7 @@ def __get_xrandr_screens() -> ScreenLayout:
         text=True)
 
     if result.returncode != 0:
-        raise RuntimeError(f"Command failed with error: {result.stderr}")
+        raise UnableToGetScreenLayoutException(f"Command failed with error: {result.stderr}")
 
     lines = result.stdout.splitlines()
     screens: list[Screen] = []
@@ -95,4 +93,11 @@ def __get_xrandr_screens() -> ScreenLayout:
 
         screens.append(Screen(width, height, x_pos, y_pos))
 
+    if len(screens) == 0:
+        raise UnableToGetScreenLayoutException("No screens found using xrandr.")
     return ScreenLayout(screens)
+
+
+class UnableToGetScreenLayoutException(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)

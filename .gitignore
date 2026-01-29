@@ -7,6 +7,7 @@ pyvenv.cfg
 pip-selfcheck.json
 
 ### JetBrains
+.ai
 .idea/
 
 ### Project Specific
