@@ -144,10 +144,10 @@ if __name__ == '__main__':
         help='The type of output images. Defaults to "jpg".'
     )
     arg_parser.add_argument(
-        '-c', '--clear',
+        '-r', '--replace',
         action='store_true',
-        default=True,
-        help='Clear the output directory before generating new images.'
+        default=False,
+        help='Replace images in the target directory. Defaults to "True".'
     )
 
     args = arg_parser.parse_args()
@@ -168,19 +168,12 @@ if __name__ == '__main__':
           f'layout width: {screen_layout.total_width}, '
           f'layout height: {screen_layout.total_height}.')
 
-    if args.clear:
-        print("Clearing output directory...")
-        for file in args.output_dir.glob('*'):
-            if file.is_file():
-                file.unlink()
-        print(f"Cleared output directory {args.output_dir}.")
-    elif not args.outputdir.is_empty():
-        print(f'Target directory "{args.output_dir}" is not empty.')
-        exit(0) # We should not continue!
-
     for set_title, images in args.images.items():
         outpath = args.output_dir / f'{set_title}.{args.type}'
-        print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
-        render_image_set(images, screen_layout, args.background, outpath)
+        if not args.replace and outpath.exists():
+            print(f"Output file {outpath.stem} already exists. Skipping.")
+        else:
+            print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
+            render_image_set(images, screen_layout, args.background, outpath)
 
     print("Done.")
