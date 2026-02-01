@@ -1,7 +1,8 @@
+import io
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageCms
 from PIL.Image import Resampling
 
 from screen import Screen, ScreenLayout
@@ -77,13 +78,26 @@ def render_image_set(images: list[Path],
                      layout: ScreenLayout,
                      background: str,
                      outpath: Path):
+    srgb_profile = ImageCms.createProfile("sRGB")
+    srgb_icc = ImageCms.ImageCmsProfile(srgb_profile).tobytes()
     base_image = Image.new('RGB', (layout.total_width, layout.total_height), color=background)
+    base_image.info["icc_profile"] = srgb_icc
 
     for i, s in enumerate(layout.screens):
         if i >= len(images):
             break  # No more images to use
         image_path = images[i]
         image = Image.open(image_path)  # Could fail if path is not an image, but we'll just let the error bubble up.
+
+        icc = image.info.get("icc_profile")
+        if icc:
+            src_profile = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+            image = ImageCms.profileToProfile(
+                image,
+                src_profile,
+                srgb_profile,
+                outputMode="RGB"
+            )
 
         img_x_pos = int(s.x_pos - screen_layout.min_x)
         img_y_pos = int(s.y_pos - screen_layout.min_y)
@@ -105,10 +119,10 @@ def render_image_set(images: list[Path],
         right_crop = left_crop + s.width
         bottom_crop = top_crop + s.height
 
-        image.crop((left_crop, top_crop, right_crop, bottom_crop))
+        image = image.crop((left_crop, top_crop, right_crop, bottom_crop))
         base_image.paste(image, (img_x_pos, img_y_pos))
 
-    base_image.save(outpath)
+    base_image.save(outpath, icc_profile=srgb_icc)
 
 
 if __name__ == '__main__':
