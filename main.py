@@ -164,6 +164,7 @@ if __name__ == '__main__':
     arg_parser.add_argument(
         '-c', '--target-icc',
         type=Path,
+        required=False,
         help='ICC profile to convert images to. Defaults to standard sRGB.'
     )
 
