@@ -68,18 +68,12 @@ def parse_images_arg(value: str) -> dict[str, list[Path]]:
         raise ArgumentTypeError(f"Error parsing {value}: {pe}.")
 
 
-def parse_output_dir_arg(value: str) -> Path:
-    p = Path(value)
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-
 def render_image_set(images: list[Path],
                      layout: ScreenLayout,
                      background: str,
-                     outpath: Path):
-    srgb_profile = ImageCms.createProfile("sRGB")
-    srgb_icc = ImageCms.ImageCmsProfile(srgb_profile).tobytes()
+                     outpath: Path,
+                     target_profile: ImageCms.ImageCmsProfile):
+    srgb_icc = target_profile.tobytes()
     base_image = Image.new('RGB', (layout.total_width, layout.total_height), color=background)
     base_image.info["icc_profile"] = srgb_icc
 
@@ -95,8 +89,9 @@ def render_image_set(images: list[Path],
             image = ImageCms.profileToProfile(
                 image,
                 src_profile,
-                srgb_profile,
-                outputMode="RGB"
+                target_profile,
+                outputMode="RGB",
+                renderingIntent=ImageCms.Intent.PERCEPTUAL
             )
 
         img_x_pos = int(s.x_pos - screen_layout.min_x)
@@ -136,7 +131,7 @@ if __name__ == '__main__':
     arg_parser.add_argument(
         '-o', '--output-dir',
         default='./generated',
-        type=parse_output_dir_arg,
+        type=Path,
         help='The directory to output the generated images to. Defaults to "./generated"'
     )
     arg_parser.add_argument(
@@ -163,8 +158,16 @@ if __name__ == '__main__':
         default=False,
         help='Replace images in the target directory. Defaults to "True".'
     )
+    arg_parser.add_argument(
+        '-c', '--target-icc',
+        type=Path,
+        help='ICC profile to convert images to. Defaults to standard sRGB.'
+    )
 
     args = arg_parser.parse_args()
+
+    if not args.output_dir.exists():
+        args.output_dir.mkdir(parents=True)
 
     if not args.monitor:
         from screen import get_screen_layout_from_compositor
@@ -177,6 +180,14 @@ if __name__ == '__main__':
     else:
         screen_layout = ScreenLayout(args.monitor)
 
+    if args.target_icc:
+        with open(args.target_icc, 'rb') as f:
+            target_profile = ImageCms.ImageCmsProfile(f)
+    else:
+        print("Warning: No display profile specified. Using sRGB as the target color space.")
+        p = ImageCms.createProfile("sRGB")
+        target_profile = ImageCms.ImageCmsProfile(p)
+
     print(f'Rendering {len(args.images)} images to {args.output_dir}...')
     print(f'Screens: {len(screen_layout.screens)}, '
           f'layout width: {screen_layout.total_width}, '
@@ -188,6 +199,6 @@ if __name__ == '__main__':
             print(f"Output file {outpath.stem} already exists. Skipping.")
         else:
             print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
-            render_image_set(images, screen_layout, args.background, outpath)
+            render_image_set(images, screen_layout, args.background, outpath, target_profile)
 
     print("Done.")
