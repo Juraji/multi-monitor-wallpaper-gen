@@ -100,12 +100,15 @@ def render_image_set(images: list[Path],
         img_aspect = image.width / image.height
         screen_aspect = s.width / s.height
 
-        if img_aspect > screen_aspect:
+        if img_aspect < screen_aspect:
+            new_width = s.width
+            new_height = int(s.width / img_aspect)
+        elif img_aspect > screen_aspect:
             new_width = int(s.height * img_aspect)
             new_height = s.height
         else:
             new_width = s.width
-            new_height = int(s.width / img_aspect)
+            new_height = s.width
 
         image = image.resize((new_width, new_height), Resampling.LANCZOS)
 
