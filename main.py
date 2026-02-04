@@ -108,7 +108,7 @@ def render_image_set(images: list[Path],
             new_height = s.height
         else:
             new_width = s.width
-            new_height = s.width
+            new_height = s.height
 
         image = image.resize((new_width, new_height), Resampling.LANCZOS)
 
