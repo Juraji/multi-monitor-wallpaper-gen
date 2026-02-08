@@ -1,5 +1,6 @@
 import io
 from argparse import ArgumentParser, ArgumentTypeError
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from PIL import Image, ImageCms
@@ -197,12 +198,25 @@ if __name__ == '__main__':
           f'layout width: {screen_layout.total_width}, '
           f'layout height: {screen_layout.total_height}.')
 
-    for set_title, images in args.images.items():
-        outpath = args.output_dir / f'{set_title}.{args.type}'
-        if not args.replace and outpath.exists():
-            print(f"Output file {outpath.stem} already exists. Skipping.")
-        else:
-            print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
-            render_image_set(images, screen_layout, args.background, outpath, target_profile)
+    # Uses a default of max(32, os.cpu_count() + 4)
+    with ThreadPoolExecutor() as executor:
+        futures = []
+
+        for set_title, images in args.images.items():
+            outpath = args.output_dir / f'{set_title}.{args.type}'
+            if not args.replace and outpath.exists():
+                print(f"Output file {outpath.stem} already exists. Skipping.")
+            else:
+                print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
+                future = executor.submit(render_image_set,
+                                         images,
+                                         screen_layout,
+                                         args.background,
+                                         outpath,
+                                         target_profile)
+                futures.append(future)
+
+        for future in futures:
+            future.result()
 
     print("Done.")
