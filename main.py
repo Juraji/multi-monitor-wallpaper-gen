@@ -101,7 +101,7 @@ def render_image_set(images: list[Path],
                 outputMode="RGB",
                 inPlace=True
             )
-        elif not target_profile is None:
+        elif target_profile:
             ImageCms.profileToProfile(
                 im=image,
                 inputProfile=srgb_profile,

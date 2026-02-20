@@ -87,7 +87,7 @@ def __get_xrandr_screens() -> ScreenLayout:
             continue
 
         dim_str = line.split()[2]
-        if not 'x' in dim_str:
+        if 'x' not in dim_str:
             continue
 
         parts = dim_str.replace('x', '+').split('+')
