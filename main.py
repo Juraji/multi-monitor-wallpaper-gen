@@ -1,10 +1,12 @@
 import io
-from argparse import ArgumentParser, ArgumentTypeError
+import os
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from PIL import Image, ImageCms
 from PIL.Image import Resampling
+from PIL.ImageCms import ImageCmsProfile
 
 from screen import Screen, ScreenLayout
 
@@ -72,11 +74,10 @@ def parse_images_arg(value: str) -> dict[str, list[Path]]:
 def render_image_set(images: list[Path],
                      layout: ScreenLayout,
                      background: str,
-                     outpath: Path,
-                     target_profile: ImageCms.ImageCmsProfile):
-    srgb_icc = target_profile.tobytes()
+                     target_profile: ImageCmsProfile | None,
+                     outpath: Path):
     base_image = Image.new('RGB', (layout.total_width, layout.total_height), color=background)
-    base_image.info["icc_profile"] = srgb_icc
+    srgb_profile = ImageCmsProfile(ImageCms.createProfile("sRGB"))
 
     for i, s in enumerate(layout.screens):
         if i >= len(images):
@@ -84,19 +85,34 @@ def render_image_set(images: list[Path],
         image_path = images[i]
         image = Image.open(image_path)  # Could fail if path is not an image, but we'll just let the error bubble up.
 
-        icc = image.info.get("icc_profile")
-        if icc:
-            src_profile = ImageCms.ImageCmsProfile(io.BytesIO(icc))
-            image = ImageCms.profileToProfile(
-                image,
-                src_profile,
-                target_profile,
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
+        if "icc_profile" in image.info:
+            embedded_icc_bytes = image.info.get("icc_profile")
+            embedded_profile = ImageCms.ImageCmsProfile(io.BytesIO(embedded_icc_bytes))
+            target_profile = target_profile or srgb_profile
+
+            ImageCms.profileToProfile(
+                im =image,
+                inputProfile=embedded_profile,
+                outputProfile=target_profile,
+                renderingIntent=ImageCms.Intent.PERCEPTUAL,
                 outputMode="RGB",
-                renderingIntent=ImageCms.Intent.PERCEPTUAL
+                inPlace=True
+            )
+        elif not target_profile is None:
+            ImageCms.profileToProfile(
+                im=image,
+                inputProfile=srgb_profile,
+                outputProfile=target_profile,
+                renderingIntent=ImageCms.Intent.PERCEPTUAL,
+                outputMode="RGB",
+                inPlace=True
             )
 
-        img_x_pos = int(s.x_pos - screen_layout.min_x)
-        img_y_pos = int(s.y_pos - screen_layout.min_y)
+        img_x_pos = int(s.x_pos - layout.min_x)
+        img_y_pos = int(s.y_pos - layout.min_y)
 
         img_aspect = image.width / image.height
         screen_aspect = s.width / s.height
@@ -121,7 +137,60 @@ def render_image_set(images: list[Path],
         image = image.crop((left_crop, top_crop, right_crop, bottom_crop))
         base_image.paste(image, (img_x_pos, img_y_pos))
 
-    base_image.save(outpath, icc_profile=srgb_icc)
+    base_image.save(outpath, icc_profile=srgb_profile.tobytes())
+
+
+def main(options: Namespace):
+    if not options.output_dir.exists():
+        options.output_dir.mkdir(parents=True)
+
+    if not options.monitor:
+        from screen import get_screen_layout_from_compositor
+
+        try:
+            screen_layout = get_screen_layout_from_compositor()
+        except Exception as e:
+            print(f"Error: No monitors specified and failed to detect them: {e}")
+            exit(1)
+    else:
+        screen_layout = ScreenLayout(options.monitor)
+
+    target_profile: ImageCmsProfile | None = None
+    if args.target_icc:
+        with open(args.target_icc, 'rb') as f:
+            target_profile = ImageCms.ImageCmsProfile(f)
+
+    print(f'Rendering {len(options.images)} images to {options.output_dir}...')
+    print(f'Screens: {len(screen_layout.screens)}, '
+          f'layout width: {screen_layout.total_width}, '
+          f'layout height: {screen_layout.total_height}.')
+    if target_profile:
+        print(f'Target color profile: {target_profile}')
+    print()
+
+    # Sets the max thread count to CPU count with a minimum of 4
+    max_workers = max(4, os.cpu_count())
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+
+        for set_title, images in options.images.items():
+            outpath = options.output_dir / f'{set_title}.{options.type}'
+            if not options.replace and outpath.exists():
+                print(f"Output file {outpath.stem} already exists. Skipping.")
+            else:
+                print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
+                future = executor.submit(render_image_set,
+                                         images,
+                                         screen_layout,
+                                         options.background,
+                                         target_profile,
+                                         outpath)
+                futures.append(future)
+
+        for future in futures:
+            future.result()
+
+    print("Done.")
 
 
 if __name__ == '__main__':
@@ -160,7 +229,7 @@ if __name__ == '__main__':
         '-r', '--replace',
         action='store_true',
         default=False,
-        help='Replace images in the target directory. Defaults to "True".'
+        help='Replace images in the target directory. Defaults to "False".'
     )
     arg_parser.add_argument(
         '-c', '--target-icc',
@@ -170,53 +239,4 @@ if __name__ == '__main__':
     )
 
     args = arg_parser.parse_args()
-
-    if not args.output_dir.exists():
-        args.output_dir.mkdir(parents=True)
-
-    if not args.monitor:
-        from screen import get_screen_layout_from_compositor
-
-        try:
-            screen_layout = get_screen_layout_from_compositor()
-        except Exception as e:
-            print(f"Error: No monitors specified and failed to detect them: {e}")
-            exit(1)
-    else:
-        screen_layout = ScreenLayout(args.monitor)
-
-    if args.target_icc:
-        with open(args.target_icc, 'rb') as f:
-            target_profile = ImageCms.ImageCmsProfile(f)
-    else:
-        print("Warning: No display profile specified. Using sRGB as the target color space.")
-        p = ImageCms.createProfile("sRGB")
-        target_profile = ImageCms.ImageCmsProfile(p)
-
-    print(f'Rendering {len(args.images)} images to {args.output_dir}...')
-    print(f'Screens: {len(screen_layout.screens)}, '
-          f'layout width: {screen_layout.total_width}, '
-          f'layout height: {screen_layout.total_height}.')
-
-    # Uses a default of max(32, os.cpu_count() + 4)
-    with ThreadPoolExecutor() as executor:
-        futures = []
-
-        for set_title, images in args.images.items():
-            outpath = args.output_dir / f'{set_title}.{args.type}'
-            if not args.replace and outpath.exists():
-                print(f"Output file {outpath.stem} already exists. Skipping.")
-            else:
-                print(f'Rendering image "{set_title}" of {len(images)} sub-images to {outpath}...')
-                future = executor.submit(render_image_set,
-                                         images,
-                                         screen_layout,
-                                         args.background,
-                                         outpath,
-                                         target_profile)
-                futures.append(future)
-
-        for future in futures:
-            future.result()
-
-    print("Done.")
+    main(args)

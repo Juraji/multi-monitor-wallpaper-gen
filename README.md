@@ -1,19 +1,25 @@
 # Multi-Monitor Wallpaper Generator
 
-A Python tool that automatically generates a single combined wallpaper image for multi-monitor setups. It detects your monitor configuration using `xrandr` and maps individual images to each screen, handling different resolutions and positions.
+A Python tool that generates combined wallpaper images for multi-monitor setups. It detects your monitor configuration
+using `xrandr` and maps individual images to each screen, handling different resolutions, positions, and color profiles.
 
 ## Features
 
-- Automatic screen detection (width, height, and relative position).
+- Automatic screen detection (width, height, and relative position) via `xrandr`.
+- Manual monitor specification for custom layouts.
+- Batch processing - generate multiple wallpaper sets from a single image list.
 - Resizes and center-crops images to perfectly fit each monitor's aspect ratio.
 - Supports arbitrary monitor arrangements (horizontal, vertical, or mixed).
 - Fills empty spaces with a customizable background color.
+- **ICC profile conversion** - converts embedded color profiles to target profile or sRGB (essential for GNOME users).
+- Multi-threaded rendering for fast batch processing.
 
 ## Requirements
 
-- **Operating System**: Linux (required for `xrandr` support).
+- **Operating System**: Linux with X11 (required for `xrandr` support).
 - **Python**: 3.x
 - **System Tools**: `xrandr` (standard on most Linux distributions with X11).
+- **Python Dependencies**: `Pillow` (see `requirements.txt`).
 
 ## Setup
 
@@ -36,43 +42,116 @@ A Python tool that automatically generates a single combined wallpaper image for
 
 ## Usage
 
-1. **Prepare your images**:
-   Create or edit the `images.txt` file in the project root. Add the absolute or relative paths to the images you want to use, one per line. The images will be assigned to monitors based on their position (sorted primarily by vertical position, then horizontal).
+### 1. Prepare your images
 
-   Example `images.txt`:
-   ```text
-   /path/to/left_monitor_bg.jpg
-   /path/to/right_monitor_bg.png
-   ```
+Create or edit the `images.txt` file in the project root. Use `# [title]` to define wallpaper sets. Each set contains
+one image path per monitor (in order of screen position).
 
-2. **Generate the wallpaper**:
-   Run the main script:
-   ```bash
-   python main.py
-   ```
+Example `images.txt`:
 
-3. **Set the wallpaper**:
-   The script generates a file named `wallpaper.jpg` in the project root. You can then set this image as your wallpaper using your desktop environment's settings (ensure you use the "Span" or "None" tiling mode so it covers all monitors correctly).
+```text
+# Wallpaper Set 1
+/path/to/left_monitor.jpg
+/path/to/right_monitor.png
+
+# Wallpaper Set 2
+/path/to/alternate_left.jpg
+/path/to/alternate_right.png
+```
+
+The `%d` placeholder in titles auto-increments:
+
+```text
+# Wallpaper %d
+/path/to/image1.jpg
+/path/to/image2.png
+# Wallpaper %d
+/path/to/image3.jpg
+/path/to/image4.png
+```
+
+### 2. Generate the wallpapers
+
+Run the main script with auto-detected monitors:
+
+```bash
+python main.py
+```
+
+### 3. Set the wallpaper
+
+The script generates images in the `generated/` directory (default). Set these as your wallpaper using your desktop
+environment's "Span" or "Tiled" mode.
+
+---
+
+## Command-Line Options
+
+| Option             | Description                                                                    | Default                |
+|--------------------|--------------------------------------------------------------------------------|------------------------|
+| `-i, --images`     | Path to the images config file                                                 | `./images.txt`         |
+| `-o, --output-dir` | Directory for generated wallpapers                                             | `./generated`          |
+| `-m, --monitor`    | Monitor specs (WxH+X+Y). Can be used multiple times. Auto-detected if omitted. | Auto-detect via xrandr |
+| `-b, --background` | Background color for areas without images                                      | `black`                |
+| `-t, --type`       | Output image format (`jpg` or `png`)                                           | `jpg`                  |
+| `-r, --replace`    | Overwrite existing files in output directory                                   | `false`                |
+| `-c, --target-icc` | ICC profile to convert images to                                               | Standard sRGB          |
+
+### Examples
+
+**Use custom monitor layout:**
+
+```bash
+python main.py -m 1920x1080+0+0 -m 1920x1080+1920+0
+```
+
+**Output as PNG with white background:**
+
+```bash
+ python main.py -t png -b white
+```
+
+**Use custom ICC profile:**
+
+```bash
+python main.py -c /path/to/profile.icc
+```
+
+**Force overwrite existing outputs:**
+
+```bash
+python main.py -r
+```
+
+---
+
+## ICC Profile Handling (Important for GNOME Users)
+
+This tool converts embedded ICC profiles in source images to the target profile (specified via `--target-icc`) or
+standard sRGB if omitted.
+
+**Why this matters:**
+
+- GNOME does not perform color management on wallpapers - it displays them as-is
+- Source images with embedded profiles (especially wide-gamut profiles) may appear washed out or incorrect on GNOME
+- Pre-converting to sRGB ensures wallpapers look correct on GNOME
+
+**Note:** Converted images may appear incorrect in some image viewers that don't handle ICC conversion properly. This is
+expected - the images will display correctly as desktop wallpaper on GNOME.
+
+---
 
 ## Project Structure
 
-- `main.py`: The entry point of the application. Handles image processing and stitching.
-- `screen.py`: Contains logic for detecting screens and their dimensions via `xrandr`.
-- `images.txt`: Configuration file where you list the paths to source images.
-- `requirements.txt`: Lists the Python dependencies (`Pillow`).
-- `wallpaper.jpg`: The default output filename (generated after running).
+- `main.py` - CLI entry point with argparse.
+- `screen.py` - Monitor detection and layout handling via `xrandr`.
+- `images.txt` - Configuration file for image sets.
+- `requirements.txt` - Python dependencies (`Pillow`).
+- `generated/` - Default output directory for generated wallpapers.
 
-## Configuration
-
-The following constants can be adjusted directly in `main.py`:
-
-- `BG_COLOR`: The color used for areas not covered by any monitor (default: `'black'`).
-- `IMAGE_SRC`: The path to the file containing image paths (default: `'./images.txt'`).
-- `OUTPUT_IMG`: The path and name of the generated wallpaper (default: `"./wallpaper.jpg"`).
+---
 
 ## Compatibility Disclaimer
 
-"Hey, great script for X11! But what about us poor souls on Wayland? Or those stuck with Windows/MacOS?"
-
-Look, this was built specifically for my X11 setup - I can't guarantee it'll work elsewhere without some tweaking. That said: the code is yours to play with!
-Fork it, extend it, and if you manage to make it work on other platforms, I'd be thrilled to see your contributions.
+This tool was built for Linux with X11/`xrandr`. It may work on other platforms with adjustments - contributions are
+welcome!
