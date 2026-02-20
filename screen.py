@@ -37,6 +37,17 @@ class ScreenLayout:
         self.total_width = int(self.max_x - self.min_x)
         self.total_height = int(self.max_y - self.min_y)
 
+    def __repr__(self):
+        s_list = [f"  {i}. {s.width}x{s.height}@{s.x_pos},{s.y_pos}" for (i, s) in enumerate(self.screens)]
+
+        return f"""\
+Screen layout:
+    No. Screens: {len(self.screens)}
+    Layout Size: {self.total_width}x{self.total_height}
+    Screens:
+    {str.join("\n    ", s_list)}\
+        """
+
 
 def get_screen_layout_from_compositor() -> ScreenLayout:
     if platform.system() == "Linux":

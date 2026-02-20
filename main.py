@@ -161,11 +161,9 @@ def main(options: Namespace):
             target_profile = ImageCms.ImageCmsProfile(f)
 
     print(f'Rendering {len(options.images)} images to {options.output_dir}...')
-    print(f'Screens: {len(screen_layout.screens)}, '
-          f'layout width: {screen_layout.total_width}, '
-          f'layout height: {screen_layout.total_height}.')
+    print(repr(screen_layout))
     if target_profile:
-        print(f'Target color profile: {target_profile}')
+        print(f'Target color profile: "{target_profile.profile.profile_description}"')
     print()
 
     # Sets the max thread count to CPU count with a minimum of 4
