@@ -2,7 +2,7 @@ import io
 from pathlib import Path
 
 from PIL import Image, ImageCms
-from PIL.Image import Resampling, Image
+from PIL.Image import Resampling, Image, new as new_image, open as open_image
 from PIL.ImageCms import ImageCmsProfile
 
 from generator.screen import ScreenLayout, Screen
@@ -48,13 +48,13 @@ def render_image_set(images: list[Path],
                      background: str,
                      target_profile: ImageCmsProfile | None,
                      outpath: Path):
-    base_image = Image.new(IMG_MODE, (layout.total_width, layout.total_height), color=background)
+    base_image = new_image(IMG_MODE, (layout.total_width, layout.total_height), color=background)
 
     for i, screen in enumerate(layout.screens):
         if i >= len(images):
             break  # No more images to use
         image_path = images[i]
-        image = Image.open(image_path)  # Could fail if path is not an image, but we'll just let the error bubble up.
+        image = open_image(image_path)  # Could fail if path is not an image, but we'll just let the error bubble up.
 
         if image.mode != IMG_MODE:
             image = image.convert(IMG_MODE)
