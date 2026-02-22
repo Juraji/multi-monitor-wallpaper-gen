@@ -74,7 +74,7 @@ fit_mode: COVER               # Image fit: COVER (crop to fill) or CONTAIN (fit 
 
 # Wallpaper sets - each generates one combined image
 image_sets:
-  - name: Wallpaper 1.jpg    # Output filename, must be unique 
+  - name: Wallpaper 1.jpg    # Output filename, must be unique and include the extension (can be png, jpg, tiff, etc.)
     ignore_icc: false         # Apply ICC baking to this set if --bake-icc is enabled
     images:
       - /path/to/image1.png  # Image for first monitor (in order of screens list)

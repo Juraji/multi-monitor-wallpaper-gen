@@ -7,7 +7,6 @@ from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageCms
-from PIL.ImageFile import ImageFile
 
 from config import load_config, MMImageSet, MMScreenLayout, MMFitMode, MMScreen
 
@@ -43,7 +42,7 @@ def setup_parser(parser: ArgumentParser):
     )
 
 
-def _bake_icc(image: ImageFile, icc: Path):
+def _bake_icc(image: Image.Image, icc: Path):
     source_profile = SRGB_PROFILE
 
     with open(icc, 'rb') as f:
@@ -65,27 +64,61 @@ def _bake_icc(image: ImageFile, icc: Path):
     )
 
 
-def _fit_image_cover(image: ImageFile, screen: MMScreen) -> ImageFile:
+def _fit_image_cover(image: Image.Image, screen: MMScreen) -> Image.Image:
+    if image.width == screen.width and image.height == screen.height:
+        return image
+
     img_aspect = image.width / image.height
     screen_aspect = screen.width / screen.height
 
     if img_aspect < screen_aspect:
-        target_width, target_height = screen.width, int(screen.width / img_aspect)
+        target_width = screen.width
+        target_height = int(screen.width / img_aspect)
     elif img_aspect > screen_aspect:
-        target_width, target_height = int(screen.height * img_aspect), screen.height
+        target_width = int(screen.height * img_aspect)
+        target_height = screen.height
     else:
-        target_width, target_height = screen.width, screen.height
+        target_width = screen.width
+        target_height = screen.height
+
+    resampling = Image.Resampling.LANCZOS if target_width > image.width else Image.Resampling.BICUBIC
+    scaled_image = image.resize((target_width, target_height), resampling)
 
     left_crop = (target_width - screen.width) // 2
     top_crop = (target_height - screen.height) // 2
     right_crop = left_crop + screen.width
     bottom_crop = top_crop + screen.height
 
-    return image.crop((left_crop, top_crop, right_crop, bottom_crop))
+    return scaled_image.crop((left_crop, top_crop, right_crop, bottom_crop))
 
 
-def _fit_image_contain(image: ImageFile, screen: MMScreen) -> ImageFile:
-    raise NotImplementedError("Contain mode is not yet implemented.")
+def _fit_image_contain(image: Image.Image, screen: MMScreen, background_color: str) -> Image.Image:
+    if image.width == screen.width and image.height == screen.height:
+        return image
+
+    img_aspect = image.width / image.height
+    screen_aspect = screen.width / screen.height
+
+    if img_aspect < screen_aspect:
+        target_width = int(screen.height * img_aspect)
+        target_height = screen.height
+    elif img_aspect > screen_aspect:
+        target_height = int(screen.width / img_aspect)
+        target_width = screen.width
+    else:
+        target_width = screen.width
+        target_height = screen.height
+
+    resampling = Image.Resampling.LANCZOS if target_width > image.width else Image.Resampling.BICUBIC
+    scaled_image = image.resize((target_width, target_height), resampling)
+    result = Image.new(IMG_MODE, (screen.width, screen.height), color=background_color)
+
+    paste_x = (screen.width - target_width) // 2
+    paste_y = (screen.height - target_height) // 2
+
+    result.paste(scaled_image, (paste_x, paste_y))
+
+    return result
 
 
 def render_image_set(image_set: MMImageSet,
@@ -99,6 +132,9 @@ def render_image_set(image_set: MMImageSet,
 
     for i, screen in enumerate(layout.screens):
         if i >= len(image_set.images):
+            if default_image is None:
+                break # Leave other screen areas to background_color
+
             image_path = default_image
         else:
             image_path = image_set.images[i]
@@ -118,8 +154,7 @@ def render_image_set(image_set: MMImageSet,
             case MMFitMode.COVER:
                 image = _fit_image_cover(image, screen)
             case MMFitMode.CONTAIN:
-                image = _fit_image_contain(image, screen)
-                pass
+                image = _fit_image_contain(image, screen, background_color)
 
         base_image.paste(image, (img_x_pos, img_y_pos))
 
@@ -164,7 +199,7 @@ def generate_cmd(args: Namespace):
             logger.info(f'Generating image {image_set.name}...')
             future = executor.submit(render_image_set,
                                      image_set,
-                                     output_dir,
+                                     set_out_path,
                                      screen_layout,
                                      default_image,
                                      fit_mode,

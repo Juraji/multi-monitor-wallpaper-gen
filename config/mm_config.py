@@ -2,12 +2,13 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class MMFitMode(Enum):
     COVER = 'COVER'
     CONTAIN = 'CONTAIN'
+
 
 class MMScreen(BaseModel):
     device_id: str = Field(description='Device ID')
@@ -43,6 +44,14 @@ class MMImageSet(BaseModel):
     ignore_icc: bool = Field(description='Ignore --bake-icc option for this set', default=False)
     images: list[Path] = Field(description='Paths to images to use for this set', min_length=1, default=[])
 
+    @field_validator('images', mode='after')
+    @classmethod
+    def validate_images_exist(cls, v: list[Path]) -> list[Path]:
+        for img in v:
+            if not img.exists():
+                raise ValueError(f'Image file does not exist: {img}')
+        return v
+
 
 class MMConfig(BaseModel):
     screens: list[MMScreen] = Field(description='Screen list', default=[])
@@ -50,6 +59,13 @@ class MMConfig(BaseModel):
     default_image: Path | None = Field(description='Default image path', default=None)
     fit_mode: MMFitMode = Field(description='Image fit mode', default=MMFitMode.COVER)
     image_sets: list[MMImageSet] = Field(description='Image set list', default=[])
+
+    @field_validator('default_image', mode='after')
+    @classmethod
+    def validate_default_image(cls, v: Path | None) -> Path | None:
+        if v is not None and not v.exists():
+            raise ValueError(f'Default image file does not exist: {v}')
+        return v
 
 
 def load_config(config_path: Path) -> MMConfig:
