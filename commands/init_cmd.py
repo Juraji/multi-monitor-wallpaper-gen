@@ -1,5 +1,4 @@
 import logging
-import os
 from argparse import Namespace, ArgumentParser
 from pathlib import Path
 
@@ -14,7 +13,7 @@ def setup_parser(parser: ArgumentParser):
         choices=['xrandr', 'none'],
         default='xrandr',
         required=False,
-        help=f'The backend used to detect monitors, set to none to not infer screen setup. Defaults to "xrandr"'
+        help='The backend used to detect monitors, set to none to not infer screen setup. Defaults to "xrandr"'
     )
     parser.add_argument(
         '-f', '--force',
@@ -41,7 +40,7 @@ def init_cmd(args: Namespace):
     new_config = MMConfig(
         screens=screens,
         # Add a single example set
-        image_sets=[MMImageSet(images=['/path/to/image-1.png', '/path/to/image-2.png'])]
+        image_sets=[MMImageSet(images=[Path('/path/to/image-1.png'), Path('/path/to/image-2.png')])]
     )
 
     logger.info(f'Writing config to {config_path}...')

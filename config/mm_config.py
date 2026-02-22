@@ -2,6 +2,7 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
+from PIL.ImageCms import ImageCmsProfile
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -17,6 +18,18 @@ class MMScreen(BaseModel):
     width: int = Field(description='Screen width', gt=0)
     height: int = Field(description='Screen height', gt=0)
     icc: Path | None = Field(description='Screen ICC location', default=None)
+
+    __cms_profile: ImageCmsProfile | None = None
+
+    @property
+    def cms_profile(self) -> ImageCmsProfile:
+        try:
+            if self.icc and self.__cms_profile is None:
+                with open(self.icc, 'rb') as f:
+                    self.__cms_profile = ImageCmsProfile(f)
+            return self.__cms_profile
+        except Exception as e:
+            raise RuntimeError(f'Failed to load CMS profile from {self.icc} for screen {self.device_id}') from e
 
 
 class MMScreenLayout:
@@ -41,7 +54,6 @@ class MMScreenLayout:
 
 class MMImageSet(BaseModel):
     file_name: str = Field(description='Image name', min_length=1, default="Wallpaper %d.jpg")
-    ignore_icc: bool = Field(description='Ignore --bake-icc option for this set', default=False)
     images: list[Path] = Field(description='Paths to images to use for this set', min_length=1, default=[])
 
     @field_validator('images', mode='after')

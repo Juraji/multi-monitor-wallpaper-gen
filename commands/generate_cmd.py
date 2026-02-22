@@ -3,16 +3,12 @@ import os
 from argparse import Namespace, ArgumentParser
 from concurrent.futures import Future
 from concurrent.futures.thread import ThreadPoolExecutor
-from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageCms
-
-from config import load_config, MMImageSet, MMScreenLayout, MMFitMode, MMScreen
+from config import load_config, MMImageSet, MMScreenLayout, MMFitMode
+from render import render_image_set
 
 logger = logging.getLogger(__name__)
-SRGB_PROFILE = ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB'))
-IMG_MODE = 'RGB'
 
 
 def setup_parser(parser: ArgumentParser):
@@ -42,125 +38,6 @@ def setup_parser(parser: ArgumentParser):
     )
 
 
-def _bake_icc(image: Image.Image, icc: Path):
-    source_profile = SRGB_PROFILE
-
-    with open(icc, 'rb') as f:
-        target_profile = ImageCms.ImageCmsProfile(f)
-
-    if "icc_profile" in image.info:
-        # Use embedded profile for baking
-        embedded_icc_bytes = image.info.get("icc_profile")
-        source_profile = ImageCms.ImageCmsProfile(BytesIO(embedded_icc_bytes))
-        target_profile = target_profile or SRGB_PROFILE
-
-    ImageCms.profileToProfile(
-        im=image,
-        inputProfile=source_profile,
-        outputProfile=target_profile,
-        renderingIntent=ImageCms.Intent.PERCEPTUAL,
-        outputMode=IMG_MODE,
-        inPlace=True
-    )
-
-
-def _fit_image_cover(image: Image.Image, screen: MMScreen) -> Image.Image:
-    if image.width == screen.width and image.height == screen.height:
-        return image
-
-    img_aspect = image.width / image.height
-    screen_aspect = screen.width / screen.height
-
-    if img_aspect < screen_aspect:
-        target_width = screen.width
-        target_height = int(screen.width / img_aspect)
-    elif img_aspect > screen_aspect:
-        target_width = int(screen.height * img_aspect)
-        target_height = screen.height
-    else:
-        target_width = screen.width
-        target_height = screen.height
-
-    resampling = Image.Resampling.LANCZOS if target_width > image.width else Image.Resampling.BICUBIC
-    scaled_image = image.resize((target_width, target_height), resampling)
-
-    left_crop = (target_width - screen.width) // 2
-    top_crop = (target_height - screen.height) // 2
-    right_crop = left_crop + screen.width
-    bottom_crop = top_crop + screen.height
-
-    return scaled_image.crop((left_crop, top_crop, right_crop, bottom_crop))
-
-
-def _fit_image_contain(image: Image.Image, screen: MMScreen, background_color: str) -> Image.Image:
-    if image.width == screen.width and image.height == screen.height:
-        return image
-
-    img_aspect = image.width / image.height
-    screen_aspect = screen.width / screen.height
-
-    if img_aspect < screen_aspect:
-        target_width = int(screen.height * img_aspect)
-        target_height = screen.height
-    elif img_aspect > screen_aspect:
-        target_height = int(screen.width / img_aspect)
-        target_width = screen.width
-    else:
-        target_width = screen.width
-        target_height = screen.height
-
-    resampling = Image.Resampling.LANCZOS if target_width > image.width else Image.Resampling.BICUBIC
-    scaled_image = image.resize((target_width, target_height), resampling)
-    result = Image.new(IMG_MODE, (screen.width, screen.height), color=background_color)
-
-    paste_x = (screen.width - target_width) // 2
-    paste_y = (screen.height - target_height) // 2
-
-    result.paste(scaled_image, (paste_x, paste_y))
-
-    return result
-
-
-def render_image_set(image_set: MMImageSet,
-                     output_path: Path,
-                     layout: MMScreenLayout,
-                     default_image: Path,
-                     fit_mode: MMFitMode,
-                     background_color: str,
-                     bake_icc: bool):
-    base_image = Image.new(IMG_MODE, (layout.total_width, layout.total_height), color=background_color)
-
-    for i, screen in enumerate(layout.screens):
-        if i >= len(image_set.images):
-            if default_image is None:
-                break # Leave other screen areas to background_color
-
-            image_path = default_image
-        else:
-            image_path = image_set.images[i]
-
-        image = Image.open(image_path)
-
-        if image.mode != IMG_MODE:
-            image = image.convert(IMG_MODE)
-
-        if bake_icc and not image_set.ignore_icc and screen.icc:
-            _bake_icc(image, screen.icc)
-
-        img_x_pos = int(screen.x_pos - layout.min_x)
-        img_y_pos = int(screen.y_pos - layout.min_y)
-
-        match fit_mode:
-            case MMFitMode.COVER:
-                image = _fit_image_cover(image, screen)
-            case MMFitMode.CONTAIN:
-                image = _fit_image_contain(image, screen, background_color)
-
-        base_image.paste(image, (img_x_pos, img_y_pos))
-
-    base_image.save(output_path, icc_profile=SRGB_PROFILE.tobytes())
-
-
 def generate_cmd(args: Namespace):
     logger.info(f'Loading config from {args.configuration}...')
     config = load_config(args.configuration)
@@ -186,25 +63,21 @@ def generate_cmd(args: Namespace):
 
     screen_layout = MMScreenLayout(config.screens)
 
+    def image_set_handler(image_set: MMImageSet):
+        set_out_path: Path = output_dir / image_set.file_name
+        if set_out_path.exists():
+            if not replace_images:
+                logger.info(f'Image {image_set.file_name} already exists, skipping generation.')
+                return
+
+        logger.info(f'Generating image {image_set.file_name}...')
+        render_image_set(image_set, set_out_path, screen_layout, default_image, fit_mode, background_color, bake_icc)
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures: list[Future[None]] = []
 
-        for set_index, image_set in enumerate(config.image_sets):
-            set_out_path: Path = output_dir / image_set.file_name
-            if set_out_path.exists():
-                if not replace_images:
-                    logger.info(f'Image {image_set.file_name} already exists, skipping generation.')
-                    continue
-
-            logger.info(f'Generating image {image_set.file_name}...')
-            future = executor.submit(render_image_set,
-                                     image_set,
-                                     set_out_path,
-                                     screen_layout,
-                                     default_image,
-                                     fit_mode,
-                                     background_color,
-                                     bake_icc)
+        for s in config.image_sets:
+            future = executor.submit(image_set_handler, s)
             futures.append(future)
 
         for future in futures:
