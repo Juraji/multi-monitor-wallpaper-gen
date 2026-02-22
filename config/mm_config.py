@@ -40,7 +40,7 @@ class MMScreenLayout:
 
 
 class MMImageSet(BaseModel):
-    name: str = Field(description='Image name', min_length=1, default="Wallpaper %d.jpg")
+    file_name: str = Field(description='Image name', min_length=1, default="Wallpaper %d.jpg")
     ignore_icc: bool = Field(description='Ignore --bake-icc option for this set', default=False)
     images: list[Path] = Field(description='Paths to images to use for this set', min_length=1, default=[])
 
@@ -59,6 +59,14 @@ class MMConfig(BaseModel):
     default_image: Path | None = Field(description='Default image path', default=None)
     fit_mode: MMFitMode = Field(description='Image fit mode', default=MMFitMode.COVER)
     image_sets: list[MMImageSet] = Field(description='Image set list', default=[])
+
+    @field_validator('image_sets', mode='after')
+    @classmethod
+    def validate_unique_set_names(cls, v: list[MMImageSet]) -> list[MMImageSet]:
+        all_names = {s.file_name for s in v}
+        if len(v) != len(all_names):
+            raise ValueError('Image set names must not contain duplicate names.')
+        return v
 
     @field_validator('default_image', mode='after')
     @classmethod

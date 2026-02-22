@@ -190,13 +190,13 @@ def generate_cmd(args: Namespace):
         futures: list[Future[None]] = []
 
         for set_index, image_set in enumerate(config.image_sets):
-            set_out_path: Path = output_dir / image_set.name
+            set_out_path: Path = output_dir / image_set.file_name
             if set_out_path.exists():
                 if not replace_images:
-                    logger.info(f'Image {image_set.name} already exists, skipping generation.')
+                    logger.info(f'Image {image_set.file_name} already exists, skipping generation.')
                     continue
 
-            logger.info(f'Generating image {image_set.name}...')
+            logger.info(f'Generating image {image_set.file_name}...')
             future = executor.submit(render_image_set,
                                      image_set,
                                      set_out_path,
