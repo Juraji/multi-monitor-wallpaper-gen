@@ -129,11 +129,13 @@ Generated images are saved to the `generated/` directory by default.
 When using GNOME, the desktop environment does not perform color management on wallpapers. If your source images have
 embedded ICC profiles (especially wide-gamut profiles), they may appear washed out or incorrect.
 
-The `--bake-icc` option converts embedded ICC profiles to the target monitor's profile during generation, ensuring
-colors display correctly.
+The `--bake-icc` option ensures that the raw image data is pre-baked for the target monitors' color profile during
+generation.
+This means the images will display correctly when set as wallpaper, even though they might look incorrect in some image
+viewers that use color management systems (CMS).
 
-**Note:** Images with baked ICC profiles may appear incorrect in some image viewers that do handle ICC conversion
-properly. This is expected - the images will display correctly as desktop wallpaper on GNOME.
+**Note:** If you see unexpected colors in your image viewer, don't worry - this is expected behavior. The important
+thing is that your wallpapers will appear correct on the desktop.
 
 ---
 
