@@ -108,6 +108,7 @@ def render_image_set(image_set: MMImageSet,
         if image.mode != IMAGE_MODE:
             image = image.convert(IMAGE_MODE)
 
+        # If bake_icc is true, we need to bake for the target screen, else we can just convert to sRGB.
         if bake_screen_icc and screen.cms_profile:
             __bake_color_profile(image, screen.cms_profile)
         else:

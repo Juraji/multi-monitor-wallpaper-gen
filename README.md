@@ -137,25 +137,6 @@ properly. This is expected - the images will display correctly as desktop wallpa
 
 ---
 
-## Project Structure
-
-```
-.
-├── main.py                      # CLI entry point
-├── commands/                   # CLI command implementations
-│   ├── init_cmd.py              # Monitor detection & config init
-│   └── generate_cmd.py          # Wallpaper generation
-├── config/                      # Configuration handling
-│   └── mm_config.py              # Pydantic models & YAML load/save
-├── screens/                     # Screen detection backends
-│   └── xrandr.py                # xrandr backend
-├── config.yaml                  # Configuration file
-├── start.sh                     # Startup script (auto-venv)
-└── requirements.txt             # Python dependencies
-```
-
----
-
 ## Compatibility Disclaimer
 
 This tool was built for Linux with X11/`xrandr`. It may work on other platforms with adjustments - contributions are
