@@ -18,8 +18,15 @@ pip install ruff pytest
 
 ### Running
 ```bash
-python main.py
-python main.py -i images.txt -o ./generated -m 1920x1080+0+0 -m 1920x1080+1920+0 -t png -b white
+# Initialize configuration (detect monitors)
+python main.py init
+
+# Generate wallpapers from config
+python main.py generate
+
+# Use start.sh for automatic venv setup
+./start.sh init
+./start.sh generate
 ```
 
 ### Linting
@@ -54,7 +61,7 @@ pytest -v                        # verbose
 import os
 from pathlib import Path
 from PIL import Image
-from screen import Screen
+from config import MMConfig
 ```
 
 ### Naming
@@ -66,7 +73,7 @@ from screen import Screen
 ### Type Hints
 Use `X | None` instead of `Optional[X]`:
 ```python
-def func(images: list[Path], profile: ImageCmsProfile | None) -> None:
+def func(images: list[Path], profile: Path | None) -> None:
 ```
 
 ### Error Handling
@@ -89,16 +96,25 @@ with ThreadPoolExecutor(max_workers=max(4, os.cpu_count())) as executor:
 ## Structure
 ```
 .
-├── main.py
-├── screen.py
-├── images.txt
+├── main.py                      # CLI entry point
+├── commands/                    # CLI commands
+│   ├── __init__.py
+│   ├── init_cmd.py             # Monitor detection & config init
+│   └── generate_cmd.py          # Wallpaper generation
+├── config/                      # Configuration handling
+│   ├── __init__.py
+│   └── mm_config.py             # Pydantic models & YAML load/save
+├── screens/                     # Screen detection backends
+│   ├── __init__.py
+│   └── xrandr.py                # xrandr backend
+├── config.yaml                  # Configuration file
 ├── requirements.txt
-├── generated/
-└── tests/
+└── tests/                       # (to be added)
 ```
 
 ## Dependencies
 - `pillow` - image processing
-- `python-icc` - ICC color profiles
+- `pydantic` - config validation
+- `PyYAML` - YAML configuration
 - `ruff` - linting
 - `pytest` - testing

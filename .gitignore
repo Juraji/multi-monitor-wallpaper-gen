@@ -6,6 +6,15 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 
+### Python bytecode and caches
+__pycache__/
+*.pyc
+*.pyo
+
+### OS generated files
+.DS_Store
+Thumbs.db
+
 ### JetBrains
 .ai
 .idea/
@@ -13,3 +22,4 @@ pip-selfcheck.json
 ### Project Specific
 generated/
 images.txt
+config.yaml
