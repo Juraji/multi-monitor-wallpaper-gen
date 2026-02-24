@@ -70,6 +70,7 @@ class MMConfig(BaseModel):
     background_color: str = Field(description='Background color', default='black')
     default_image: Path | None = Field(description='Default image path', default=None)
     fit_mode: MMFitMode = Field(description='Image fit mode', default=MMFitMode.COVER)
+    compression_quality: int = Field(description='Compression quality', default=100)
     image_sets: list[MMImageSet] = Field(description='Image set list', default=[])
 
     @field_validator('image_sets', mode='after')
@@ -102,7 +103,7 @@ def load_config(config_path: Path) -> MMConfig:
 
 def write_config(config_path: Path, data: MMConfig):
     try:
-        model_dump = data.model_dump(exclude_none=False)
+        model_dump = data.model_dump(exclude_none=False, mode='json')
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(model_dump, f, sort_keys=False)
     except Exception as e:

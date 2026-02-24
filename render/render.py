@@ -91,7 +91,8 @@ def render_image_set(image_set: MMImageSet,
                      default_image: Path,
                      fit_mode: MMFitMode,
                      background_color: str,
-                     bake_screen_icc: bool):
+                     bake_screen_icc: bool,
+                     compression_quality: int) -> None:
     base_image = Image.new(IMAGE_MODE, (layout.total_width, layout.total_height), color=background_color)
 
     for i, screen in enumerate(layout.screens):
@@ -125,4 +126,6 @@ def render_image_set(image_set: MMImageSet,
 
         base_image.paste(image, (img_x_pos, img_y_pos))
 
-    base_image.save(output_path, icc_profile=SRGB_PROFILE.tobytes())
+    # If we bake the monitor ICC's we should NOT embed the profile.
+    embed_icc = None if bake_screen_icc else SRGB_PROFILE.tobytes()
+    base_image.save(output_path, icc_profile=embed_icc, quality=compression_quality)

@@ -51,10 +51,11 @@ def generate_cmd(args: Namespace):
     replace_images: bool = args.replace
     bake_icc: bool = args.bake_icc
     max_workers: int = args.max_workers
+    start_index: int = args.start_index
     default_image: Path | None = config.default_image
     fit_mode: MMFitMode = config.fit_mode
     background_color: str = config.background_color
-    start_index: int = args.start_index
+    compression_quality = config.compression_quality
 
     logger.info(f"""\
 Configuration loaded:
@@ -64,8 +65,12 @@ Configuration loaded:
   Replace images: {'yes' if replace_images else 'no'}
   Max workers: {max_workers}
   Bake ICC: {'yes' if bake_icc else 'no'}
-  Start index at: {start_index}
-    """.strip())
+  Start index: {start_index}
+  Default image: {default_image}
+  Fit mode: {fit_mode}
+  Background color: {background_color}
+  Compression quality: {compression_quality}
+    """)
 
     if not output_dir.exists():
         logging.info(f'Creating directory {output_dir}...')
@@ -82,7 +87,14 @@ Configuration loaded:
                 return
 
         logger.info(f'Generating image {file_name}...')
-        render_image_set(image_set, set_out_path, screen_layout, default_image, fit_mode, background_color, bake_icc)
+        render_image_set(image_set,
+                         set_out_path,
+                         screen_layout,
+                         default_image,
+                         fit_mode,
+                         background_color,
+                         bake_icc,
+                         compression_quality)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures: list[Future[None]] = []

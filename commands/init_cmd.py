@@ -7,6 +7,7 @@ from screens import get_screen_layout
 
 logger = logging.getLogger(__name__)
 
+
 def setup_parser(parser: ArgumentParser):
     parser.add_argument(
         '--backend',
@@ -22,6 +23,7 @@ def setup_parser(parser: ArgumentParser):
         required=False,
         help='Overwrite existing configuration file. Defaults to "False".'
     )
+
 
 def init_cmd(args: Namespace):
     config_path: Path = args.configuration
@@ -40,7 +42,14 @@ def init_cmd(args: Namespace):
     new_config = MMConfig(
         screens=screens,
         # Add a single example set
-        image_sets=[MMImageSet(images=[Path('/path/to/image-1.png'), Path('/path/to/image-2.png')])]
+        image_sets=[
+            MMImageSet.model_construct(
+                file_name='My {index} wallpaper.jpg',
+                images=[
+                    Path('/path/to/image1.png'),
+                    Path('/path/to/image2.png')
+                ])
+        ]
     )
 
     logger.info(f'Writing config to {config_path}...')
