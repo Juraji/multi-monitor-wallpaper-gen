@@ -75,8 +75,10 @@ class MMConfig(BaseModel):
     @field_validator('image_sets', mode='after')
     @classmethod
     def validate_unique_set_names(cls, v: list[MMImageSet]) -> list[MMImageSet]:
-        all_names = {s.file_name for s in v}
-        if len(v) != len(all_names):
+        # We need to ignore names that have the {index} keyword, as they will automatically be unique.
+        unindexed_names = [s.file_name for s in v if "{index}" not in s.file_name]
+        unique_unindexed_names = set(unindexed_names)
+        if len(unique_unindexed_names) != len(unindexed_names):
             raise ValueError('Image set names must not contain duplicate names.')
         return v
 

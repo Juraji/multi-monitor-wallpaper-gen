@@ -36,6 +36,12 @@ def setup_parser(parser: ArgumentParser):
         default=max(4, os.cpu_count()),
         help='The maximum number of workers to use. Defaults to the cpu core count with a minimum of 4.'
     )
+    parser.add_argument(
+        '-i', '--start-index',
+        type=int,
+        default=1,
+        help='The starting index when using the "{index}" key in wallpaper names. Defaults to 1.'
+    )
 
 
 def generate_cmd(args: Namespace):
@@ -48,14 +54,18 @@ def generate_cmd(args: Namespace):
     default_image: Path | None = config.default_image
     fit_mode: MMFitMode = config.fit_mode
     background_color: str = config.background_color
+    start_index: int = args.start_index
 
-    logger.info(f'Configuration loaded:\n'
-                f'  Screens: {len(config.screens)}\n'
-                f'  Image sets: {len(config.image_sets)}\n'
-                f'  Default image: {config.default_image}\n'
-                f'  Replace images: {'yes' if replace_images else 'no'}\n'
-                f'  Max workers: {max_workers}\n'
-                f'  Bake ICC: {'yes' if bake_icc else 'no'}')
+    logger.info(f"""\
+Configuration loaded:
+  Screens: {len(config.screens)}
+  Image sets: {len(config.image_sets)}
+  Default image: {config.default_image}
+  Replace images: {'yes' if replace_images else 'no'}
+  Max workers: {max_workers}
+  Bake ICC: {'yes' if bake_icc else 'no'}
+  Start index at: {start_index}
+    """.strip())
 
     if not output_dir.exists():
         logging.info(f'Creating directory {output_dir}...')
@@ -63,21 +73,23 @@ def generate_cmd(args: Namespace):
 
     screen_layout = MMScreenLayout(config.screens)
 
-    def image_set_handler(image_set: MMImageSet):
-        set_out_path: Path = output_dir / image_set.file_name
+    def image_set_handler(image_set: MMImageSet, index: int):
+        file_name = image_set.file_name.format(index=index)
+        set_out_path: Path = output_dir / file_name
         if set_out_path.exists():
             if not replace_images:
-                logger.info(f'Image {image_set.file_name} already exists, skipping generation.')
+                logger.info(f'Image {file_name} already exists, skipping generation.')
                 return
 
-        logger.info(f'Generating image {image_set.file_name}...')
+        logger.info(f'Generating image {file_name}...')
         render_image_set(image_set, set_out_path, screen_layout, default_image, fit_mode, background_color, bake_icc)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures: list[Future[None]] = []
 
-        for s in config.image_sets:
-            future = executor.submit(image_set_handler, s)
+        for (i, s) in enumerate(config.image_sets):
+            i = start_index + i
+            future = executor.submit(image_set_handler, s, i)
             futures.append(future)
 
         for future in futures:
