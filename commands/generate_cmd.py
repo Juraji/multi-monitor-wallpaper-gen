@@ -61,7 +61,6 @@ def generate_cmd(args: Namespace):
 Configuration loaded:
   Screens: {len(config.screens)}
   Image sets: {len(config.image_sets)}
-  Default image: {config.default_image}
   Replace images: {'yes' if replace_images else 'no'}
   Max workers: {max_workers}
   Bake ICC: {'yes' if bake_icc else 'no'}
