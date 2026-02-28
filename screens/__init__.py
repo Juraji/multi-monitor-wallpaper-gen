@@ -1,5 +1,10 @@
 from config import MMScreen
 
+BACKENDS = [
+    'xrandr',
+    'none'
+]
+
 
 def get_screen_layout(backend: str) -> list[MMScreen]:
     match backend:

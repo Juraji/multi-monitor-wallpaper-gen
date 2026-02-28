@@ -3,7 +3,7 @@ from argparse import Namespace, ArgumentParser
 from pathlib import Path
 
 from config import write_config, MMConfig, MMImageSet
-from screens import get_screen_layout
+from screens import get_screen_layout, BACKENDS
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 def setup_parser(parser: ArgumentParser):
     parser.add_argument(
         '--backend',
-        choices=['xrandr', 'none'],
-        default='xrandr',
+        choices=BACKENDS,
+        default=BACKENDS[0],
         required=False,
-        help='The backend used to detect monitors, set to none to not infer screen setup. Defaults to "xrandr"'
+        help=f'The backend used to detect monitors, set to none to not infer screen setup. Defaults to "{BACKENDS[0]}"'
     )
     parser.add_argument(
         '-f', '--force',
