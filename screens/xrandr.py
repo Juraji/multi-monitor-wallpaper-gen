@@ -106,7 +106,7 @@ def _xrandr_list_color_profiles() -> dict[str, str]:
             current_profile = None
             continue
 
-        if line.startswith('Metadata:') and '=' in line:
+        if line.startswith('Metadata:') and 'XRANDR_name' in line:
             current_xrandr = line.split('=')[1]
             continue
 
