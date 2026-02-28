@@ -4,15 +4,24 @@
 
 Python tool for generating combined wallpaper images for multi-monitor setups. Detects monitors via `xrandr` and maps images with color profile handling.
 
-## Environment Setup
+---
 
-**IMPORTANT**: Always use `.venv` when running Python code.
+## CRITICAL: Always Use Virtual Environment
+
+**NEVER** run Python, pip, pytest, ruff, or any other Python commands without first activating the virtual environment.
 
 ```bash
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install ruff pytest
+# ALWAYS activate the venv first
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate     # Windows
 ```
+
+- Never install packages globally (e.g., `pip install --user` or system-wide pip)
+- Never run `python` without the venv activated
+- If you need to add dependencies, install them with `pip install -r requirements.txt` inside the activated venv
+- Scripts that call Python tools should explicitly activate the venv or use `.venv/bin/python` directly
+
+---
 
 ## Commands
 
