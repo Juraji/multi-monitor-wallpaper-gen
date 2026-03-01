@@ -10,41 +10,9 @@ A terminal-based UI for managing the application without editing YAML directly.
 
 ### Core TUI Features
 
-- [ ] **App Shell**
-  - [ ] Main menu with navigation (Screens, Image Sets, Settings, Preview, Generate)
-  - [ ] Keyboard navigation (arrows, enter, escape, shortcuts)
-  - [ ] Status bar showing current state/actions
-
-- [ ] **Screen Management View**
-  - [ ] List all detected/configured screens
-  - [ ] Add/Edit/Remove screens manually
-  - [ ] Re-detect monitors via xrandr
-  - [ ] Edit screen properties (device_id, position, resolution, ICC profile)
-  - [ ] Visual ASCII representation of monitor layout
-
-- [ ] **Image Set Management**
-  - [ ] List all image sets with thumbnails (ASCII or terminal graphics)
-  - [ ] Add/Edit/Delete image sets
-  - [ ] Browse and select images for each screen
-  - [ ] Drag-and-drop reordering (if possible with keybindings)
-  - [ ] Bulk operations (select all, delete multiple)
-
-- [ ] **Settings View**
-  - [ ] Edit global settings (background color, fit mode, compression quality)
-  - [ ] Default image selection
-
-- [ ] **Preview**
-  - [ ] Preview generated wallpaper in terminal (ASCII art / sixel / kitty protocol if available)
-  - [ ] Quick preview of individual monitor crops
-
-- [ ] **Actions**
-  - [ ] Run generate command from within TUI
-  - [ ] Set as wallpaper (if backend supports it)
-
 ### Technical Notes
 
-- Use library: `textual` or `npyscreen` or `curses`
-- Prefer: `textual` for modern TUI experience
+- Use library: `textual` for modern TUI experience
 - Should work without graphics mode (basic terminal)
 
 ---
