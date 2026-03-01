@@ -92,7 +92,7 @@ def render_image_set(image_set: MMImageSet,
                      fit_mode: MMFitMode,
                      background_color: str,
                      bake_screen_icc: bool,
-                     compression_quality: int) -> None:
+                     compression_quality: int):
     base_image = Image.new(IMAGE_MODE, (layout.total_width, layout.total_height), color=background_color)
 
     for i, screen in enumerate(layout.screens):

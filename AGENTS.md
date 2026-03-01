@@ -82,7 +82,7 @@ from app.config import MMConfig
 ### Type Hints
 Use `X | None` instead of `Optional[X]`:
 ```python
-def func(images: list[Path], profile: Path | None) -> None:
+def func(images: list[Path], profile: Path | None):
 ```
 
 ### Error Handling
