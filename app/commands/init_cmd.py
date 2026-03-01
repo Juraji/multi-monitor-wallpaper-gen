@@ -2,7 +2,7 @@ import logging
 from argparse import Namespace, ArgumentParser
 from pathlib import Path
 
-from app.config import write_config, MMConfig, MMImageSet
+from app.config.profiles import MMProfile, MMImageSet, write_profile
 from app.screens import get_screen_layout, BACKENDS
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def init_cmd(args: Namespace):
     screens = get_screen_layout(args.backend)
     logger.info(f'Found {len(screens)} screens.')
 
-    new_config = MMConfig(
+    new_config = MMProfile(
         screens=screens,
         # Add a single example set
         image_sets=[
@@ -53,5 +53,5 @@ def init_cmd(args: Namespace):
     )
 
     logger.info(f'Writing config to {config_path}...')
-    write_config(config_path, new_config)
+    write_profile(config_path, new_config)
     logger.info(f'Configuration file written to {config_path}.')

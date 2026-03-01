@@ -5,6 +5,8 @@ import yaml
 from PIL.ImageCms import ImageCmsProfile
 from pydantic import BaseModel, Field, field_validator
 
+from app.config.constants import PROFILES_DIR
+
 
 class MMFitMode(Enum):
     COVER = 'COVER'
@@ -65,7 +67,7 @@ class MMImageSet(BaseModel):
         return v
 
 
-class MMConfig(BaseModel):
+class MMProfile(BaseModel):
     screens: list[MMScreen] = Field(description='Screen list', default=[])
     background_color: str = Field(description='Background color', default='black')
     default_image: Path | None = Field(description='Default image path', default=None)
@@ -91,17 +93,21 @@ class MMConfig(BaseModel):
         return v
 
 
-def load_config(config_path: Path) -> MMConfig:
+def list_profiles() -> list[Path]:
+    return sorted(PROFILES_DIR.glob("*.yaml"))
+
+
+def load_profile(config_path: Path) -> MMProfile:
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
-        return MMConfig.model_validate(data)
+        return MMProfile.model_validate(data)
     except Exception as e:
         raise RuntimeError(f'Failed to load configuration from {config_path}') from e
 
 
-def write_config(config_path: Path, data: MMConfig):
+def write_profile(config_path: Path, data: MMProfile):
     try:
         model_dump = data.model_dump(exclude_none=False, mode='json')
         with open(config_path, "w", encoding="utf-8") as f:

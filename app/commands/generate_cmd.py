@@ -5,8 +5,9 @@ from concurrent.futures import Future
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 
-from app.config import load_config, MMImageSet, MMScreenLayout, MMFitMode
-from app.render import render_image_set
+from app.config.constants import GENERATED_OUT_DIR
+from app.config.profiles import load_profile, MMFitMode, MMScreenLayout, MMImageSet
+from app.render.render import render_image_set
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 def setup_parser(parser: ArgumentParser):
     parser.add_argument(
         '-o', '--output-dir',
-        default='./generated',
+        default=GENERATED_OUT_DIR,
         type=Path,
         help='The directory to output the generated images to. Defaults to "./generated"'
     )
@@ -46,21 +47,21 @@ def setup_parser(parser: ArgumentParser):
 
 def generate_cmd(args: Namespace):
     logger.info(f'Loading config from {args.configuration}...')
-    config = load_config(args.configuration)
+    profile = load_profile(args.configuration)
     output_dir: Path = args.output_dir
     replace_images: bool = args.replace
     bake_icc: bool = args.bake_icc
     max_workers: int = args.max_workers
     start_index: int = args.start_index
-    default_image: Path | None = config.default_image
-    fit_mode: MMFitMode = config.fit_mode
-    background_color: str = config.background_color
-    compression_quality = config.compression_quality
+    default_image: Path | None = profile.default_image
+    fit_mode: MMFitMode = profile.fit_mode
+    background_color: str = profile.background_color
+    compression_quality = profile.compression_quality
 
     logger.info(f"""\
 Configuration loaded:
-  Screens: {len(config.screens)}
-  Image sets: {len(config.image_sets)}
+  Screens: {len(profile.screens)}
+  Image sets: {len(profile.image_sets)}
   Replace images: {'yes' if replace_images else 'no'}
   Max workers: {max_workers}
   Bake ICC: {'yes' if bake_icc else 'no'}
@@ -75,7 +76,7 @@ Configuration loaded:
         logging.info(f'Creating directory {output_dir}...')
         output_dir.mkdir(parents=True)
 
-    screen_layout = MMScreenLayout(config.screens)
+    screen_layout = MMScreenLayout(profile.screens)
 
     def image_set_handler(image_set: MMImageSet, index: int):
         file_name = image_set.file_name.format(index=index)
@@ -98,7 +99,7 @@ Configuration loaded:
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures: list[Future[None]] = []
 
-        for (i, s) in enumerate(config.image_sets):
+        for (i, s) in enumerate(profile.image_sets):
             i = start_index + i
             future = executor.submit(image_set_handler, s, i)
             futures.append(future)

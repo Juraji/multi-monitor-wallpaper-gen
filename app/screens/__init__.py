@@ -1,4 +1,4 @@
-from app.config import MMScreen
+from app.config.profiles import MMScreen
 
 BACKENDS = [
     'xrandr',

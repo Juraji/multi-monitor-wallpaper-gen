@@ -10,6 +10,10 @@ A terminal-based UI for managing the application without editing YAML directly.
 
 ### Core TUI Features
 
+- [ ] Profile/config management.
+- [ ] Generating/editing configs.
+- [ ] Generate image sets based on selected configuration.
+
 ### Technical Notes
 
 - Use library: `textual` for modern TUI experience
