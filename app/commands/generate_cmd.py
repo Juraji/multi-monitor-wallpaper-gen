@@ -5,8 +5,8 @@ from concurrent.futures import Future
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 
-from config import load_config, MMImageSet, MMScreenLayout, MMFitMode
-from render import render_image_set
+from app.config import load_config, MMImageSet, MMScreenLayout, MMFitMode
+from app.render import render_image_set
 
 logger = logging.getLogger(__name__)
 

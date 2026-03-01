@@ -70,7 +70,7 @@ pytest -v                        # verbose
 import os
 from pathlib import Path
 from PIL import Image
-from config import MMConfig
+from app.config import MMConfig
 ```
 
 ### Naming

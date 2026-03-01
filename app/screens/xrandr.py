@@ -1,6 +1,6 @@
 import subprocess
 
-from config import MMScreen
+from app.config import MMScreen
 
 
 def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:

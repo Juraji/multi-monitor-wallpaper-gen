@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile, Intent, createProfile, profileToProfile
 
-from config import MMImageSet, MMScreenLayout, MMFitMode, MMScreen
+from app.config import MMImageSet, MMScreenLayout, MMFitMode, MMScreen
 
 SRGB_PROFILE = ImageCmsProfile(createProfile('sRGB'))
 IMAGE_MODE = 'RGB'

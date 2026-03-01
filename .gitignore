@@ -1,6 +1,4 @@
 ### Virtualenv
-#
-# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 .Python
 pyvenv.cfg
 .venv
@@ -21,5 +19,5 @@ Thumbs.db
 
 ### Project Specific
 generated/
-images.txt
-config.yaml
+profiles/
+!**/.gitkeep
