@@ -2,3 +2,5 @@ pillow==12.1.1
 pydantic==2.12.5
 PyYAML==6.0.3
 ruff==0.15.4
+textual==8.0.0
+textual-dev==1.8.0
