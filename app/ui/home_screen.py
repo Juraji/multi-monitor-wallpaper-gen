@@ -102,4 +102,5 @@ class MMHomeScreen(Screen):
             self.app.push_screen(MMManageProfileScreen(path))
 
     def action_create_new_profile(self):
-        self.app.push_screen(MMManageProfileScreen(None))
+        # TODO: Create and display a modal to create a new profile (and navigate to it.)
+        pass
