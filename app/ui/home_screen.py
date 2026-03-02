@@ -1,9 +1,11 @@
 from pathlib import Path
 
+from textual import on
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, ListView, ListItem, Static, Header
+from textual.widgets import ListView, ListItem, Static, Header, Footer, Label
 
 from app.config.profiles import list_profiles
 from app.ui.manage_profile_screen import MMManageProfileScreen
@@ -23,23 +25,18 @@ class MMHomeScreen(Screen):
         padding: 1;
     }
     
-    #profile-list-title {
-        margin-bottom: 1;
-    }
     #profile-list {
         height: 1fr;
     }
+    ListItem {
+        height: 3;
+        padding: 1;
+    }
+    
     #empty-state {
         height: 1fr;
         color: $text-muted;
         content-align: center middle;
-    }
-    
-    #actions-panel {
-        dock: bottom;
-        height: auto;
-        margin-top: 1;
-        align-horizontal: right;
     }
 
     #instructions-title {
@@ -54,22 +51,23 @@ class MMHomeScreen(Screen):
 
     available_profiles: list[Path] = []
 
+    BINDINGS = [
+        Binding('ctrl+n', 'create_new_profile', 'Create a new profile'),
+    ]
+
     def compose(self) -> ComposeResult:
         yield Header()
+        yield Footer(show_command_palette=False)
         with Horizontal():
             with Vertical(id="left-panel"):
-                yield Static("Select a profile", id="profile-list-title")
                 yield ListView(id="profile-list")
                 yield Static("No profiles yet", id="empty-state")
-                with Horizontal(id="actions-panel"):
-                    yield Button(
-                        "Create New Profile", id="create-new-profile", variant="primary"
-                    )
             with Vertical(id="right-panel"):
                 yield Static("What To Do", id="instructions-title")
                 yield Static(id="instructions-text")
 
     def on_mount(self):
+        self.sub_title = 'Select a profile'
         self.available_profiles = list_profiles()
 
         list_view = self.query_one("#profile-list", ListView)
@@ -79,7 +77,7 @@ class MMHomeScreen(Screen):
         list_view.clear()
         for profile_path in self.available_profiles:
             profile_name = profile_path.stem
-            item = ListItem(Static(profile_name))
+            item = ListItem(Label(profile_name))
             list_view.append(item)
 
         has_profiles = bool(self.available_profiles)
@@ -96,15 +94,12 @@ class MMHomeScreen(Screen):
                 "A profile stores your monitor configuration, images, and settings."
             )
 
-    def on_list_view_selected(self, event: ListView.Selected):
-        match event.list_view.id:
-            case "profile-list":
-                selected_index = event.list_view.index
-                if selected_index is not None:
-                    path = self.available_profiles[selected_index]
-                    self.app.push_screen(MMManageProfileScreen(path))
+    @on(ListView.Selected, "#profile-list")
+    def open_existing_profile(self, event: ListView.Selected):
+        selected_index = event.list_view.index
+        if selected_index is not None:
+            path = self.available_profiles[selected_index]
+            self.app.push_screen(MMManageProfileScreen(path))
 
-    def on_button_pressed(self, event: Button.Pressed):
-        match event.button.id:
-            case "create-new-profile":
-                self.app.push_screen(MMManageProfileScreen(None))
+    def action_create_new_profile(self):
+        self.app.push_screen(MMManageProfileScreen(None))

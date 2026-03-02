@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 from app.commands import init_cmd, setup_generate_cmd_parser, generate_cmd, setup_init_cmd_parser
-from app.ui.app import MMWallpaperApp
+from app.ui.app import MMApp
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser(description='Batch generate multi-monitor wallpapers')
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     match args.command:
         case 'ui':
-            app = MMWallpaperApp()
+            app = MMApp()
             app.run()
         case 'init':
             init_cmd(args)
