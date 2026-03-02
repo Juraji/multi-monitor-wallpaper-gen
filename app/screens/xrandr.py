@@ -1,6 +1,6 @@
 import subprocess
 
-from app.config import MMScreen
+from app.config.profiles import MMScreen
 
 
 def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:
@@ -11,7 +11,7 @@ def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:
     including display location (identifier), x-position, y-position, width, and height in pixels.
     The result is returned as a list of tuples where each tuple contains the monitor identifier followed by
     its coordinates and dimensions.
-
+s
     :return: List of active monitors represented as tuples containing:
         - Monitor identifier (string)
         - X-coordinate position (integer)

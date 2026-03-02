@@ -1,0 +1,35 @@
+from textual.containers import Horizontal
+from textual.reactive import reactive
+
+
+class MMActionBar(Horizontal):
+    """A horizontal container for 1..n buttons."""
+
+    dock_bottom: bool = reactive(False)
+
+    DEFAULT_CSS = """
+    MMActionBar {
+        height: auto;
+        width: 100%;
+        padding-top: 1;
+        align-horizontal: right;
+    }
+
+    MMActionBar Button {
+        margin-right: 1;
+    }
+
+    MMActionBar Button:last-child {
+        margin-right: 0;
+    }
+    """
+
+    def __init__(self, dock_bottom: bool = False, **kwargs):
+        super().__init__(**kwargs)
+        self.dock_bottom = dock_bottom
+
+    def watch_dock_bottom(self, dock_bottom: bool) -> None:
+        if dock_bottom:
+            self.styles.dock = "bottom"
+        else:
+            self.styles.dock = None

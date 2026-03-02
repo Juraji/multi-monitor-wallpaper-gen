@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PIL.TiffImagePlugin import MM
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -8,6 +9,7 @@ from textual.screen import Screen
 from textual.widgets import ListView, ListItem, Static, Header, Footer, Label
 
 from app.config.profiles import list_profiles
+from app.ui.create_profile_modal import MMCreateProfileModal
 from app.ui.manage_profile_screen import MMManageProfileScreen
 
 
@@ -28,7 +30,7 @@ class MMHomeScreen(Screen):
     #profile-list {
         height: 1fr;
     }
-    ListItem {
+    #profile-list ListItem {
         height: 3;
         padding: 1;
     }
@@ -60,6 +62,7 @@ class MMHomeScreen(Screen):
         yield Footer(show_command_palette=False)
         with Horizontal():
             with Vertical(id="left-panel"):
+                yield Label('Existing profiles:', variant='primary')
                 yield ListView(id="profile-list")
                 yield Static("No profiles yet", id="empty-state")
             with Vertical(id="right-panel"):
@@ -102,5 +105,8 @@ class MMHomeScreen(Screen):
             self.app.push_screen(MMManageProfileScreen(path))
 
     def action_create_new_profile(self):
-        # TODO: Create and display a modal to create a new profile (and navigate to it.)
-        pass
+        async def on_profile_modal_dismiss(path: Path | None):
+            self.on_mount()
+            if path: self.app.push_screen(MMManageProfileScreen(path))
+
+        self.app.push_screen(MMCreateProfileModal(), callback=on_profile_modal_dismiss)
