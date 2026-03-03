@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Any
 
+from textual import on
 from textual.app import ComposeResult
 from textual.widgets import Label, Input, Select
 
@@ -10,21 +12,33 @@ from app.ui.widgets.modal_screen import MMModalScreen
 
 
 class MMCreateProfileModal(MMModalScreen):
-    def __init__(self) -> None:
-        super().__init__(modal_title='Create New Profile', confirm_button_label='Create Profile')
+    _detect_screens_options = [
+        ('Skip detection', 'none'),
+        ('Use XRandR', 'xrandr'),
+    ]
+
+    _profile_name_input: Input
+    _detect_screens_input: Select
+    _existing_profile_names: list[str]
+
+    def __init__(self, existing_profiles: list[Path]):
+        super().__init__(modal_title='Create New Profile',
+                         confirm_button_label='Create Profile',
+                         disable_confirm_on_init=True)
+
+        self._existing_profile_names = [p.stem.lower() for p in existing_profiles]
 
     def compose_content(self) -> ComposeResult:
         yield Label('Profile Name:')
-        yield Input(id='profile-name', type='text')
+        self._profile_name_input = Input(id='profile-name', type='text')
+        yield self._profile_name_input
         yield Label('Detect screens:')
-        yield Select(id='detect-screens', options=[
-            ('Skip detection', 'none'),
-            ('Use XRandR', 'xrandr'),
-        ], value='xrandr')
+        self._detect_screens_input = Select(id='detect-screens', options=self._detect_screens_options, value='xrandr')
+        yield self._detect_screens_input
 
     def handle_confirm(self) -> Any:
-        name = self.query_one('#profile-name', Input).value
-        detect_backend = self.query_one('#detect-screens', Select).value
+        name = self._profile_name_input.value
+        detect_backend = self._detect_screens_input.value
 
         profile_path = PROFILES_DIR / f'{name}.yaml'
         screens = get_screen_layout(detect_backend)
@@ -33,3 +47,8 @@ class MMCreateProfileModal(MMModalScreen):
         write_profile(profile_path, p)
 
         return profile_path
+
+    @on(Input.Changed, '#profile-name')
+    def on_profile_name_changed(self, event: Input.Changed):
+        v = event.value.strip().lower()
+        self.confirm_button_disabled = not v or v in self._existing_profile_names

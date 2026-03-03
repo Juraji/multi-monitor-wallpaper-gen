@@ -16,11 +16,7 @@ class MMActionBar(Horizontal):
     }
 
     MMActionBar Button {
-        margin-right: 1;
-    }
-
-    MMActionBar Button:last-child {
-        margin-right: 0;
+        margin-left: 1;
     }
     """
 
@@ -28,7 +24,7 @@ class MMActionBar(Horizontal):
         super().__init__(**kwargs)
         self.dock_bottom = dock_bottom
 
-    def watch_dock_bottom(self, dock_bottom: bool) -> None:
+    def watch_dock_bottom(self, dock_bottom: bool):
         if dock_bottom:
             self.styles.dock = "bottom"
         else:

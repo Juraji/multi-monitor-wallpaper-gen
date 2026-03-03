@@ -109,4 +109,5 @@ class MMHomeScreen(Screen):
             self.on_mount()
             if path: self.app.push_screen(MMManageProfileScreen(path))
 
-        self.app.push_screen(MMCreateProfileModal(), callback=on_profile_modal_dismiss)
+        m = MMCreateProfileModal(self.available_profiles)
+        self.app.push_screen(m, callback=on_profile_modal_dismiss)

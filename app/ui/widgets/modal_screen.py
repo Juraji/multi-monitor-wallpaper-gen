@@ -35,18 +35,20 @@ class MMModalScreen(ModalScreen):
         Binding(key='escape', action='cancel_modal', description='Cancel Modal'),
     ]
 
-    modal_title = reactive("")
-    confirm_button_label = reactive("")
-    cancel_button_label = reactive("")
+    confirm_button_disabled = reactive(False)
 
     def __init__(self,
                  modal_title: str = 'Modal',
                  confirm_button_label: str = "Confirm",
-                 cancel_button_label: str = "Cancel"):
+                 cancel_button_label: str = "Cancel",
+                 disable_confirm_on_init: bool = False):
         super().__init__()
+        self._confirm_button = None
+
         self.modal_title = modal_title
         self.confirm_button_label = confirm_button_label
         self.cancel_button_label = cancel_button_label
+        self.confirm_button_disabled = disable_confirm_on_init
 
     def compose(self) -> ComposeResult:
         with Container(id='modal-container'):
@@ -54,9 +56,11 @@ class MMModalScreen(ModalScreen):
             yield from self.compose_content()
             with MMActionBar(dock_bottom=True):
                 yield Button(label=self.cancel_button_label, id='cancel-button', variant='error')
-                yield Button(label=self.confirm_button_label, id='confirm-button', variant='primary')
+                self._confirm_button = Button(label=self.confirm_button_label, id='confirm-button', variant='primary',
+                                              disabled=self.confirm_button_disabled)
+                yield self._confirm_button
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed):
         match event.button.id:
             case "cancel-button":
                 result = self.handle_cancel()
@@ -70,6 +74,10 @@ class MMModalScreen(ModalScreen):
     def action_cancel_modal(self):
         result = self.handle_cancel()
         self.dismiss(result)
+
+    def watch_confirm_button_disabled(self, disabled: bool):
+        if self._confirm_button:
+            self._confirm_button.disabled = disabled
 
     # noinspection PyMethodMayBeStatic
     def compose_content(self) -> ComposeResult:
