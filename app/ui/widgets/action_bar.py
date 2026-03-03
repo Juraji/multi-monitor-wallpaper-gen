@@ -20,7 +20,7 @@ class MMActionBar(Horizontal):
     }
     """
 
-    def __init__(self, dock_bottom: bool = False, **kwargs):
+    def __init__(self, dock_bottom: bool = True, **kwargs):
         super().__init__(**kwargs)
         self.dock_bottom = dock_bottom
 

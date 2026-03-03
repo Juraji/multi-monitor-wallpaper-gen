@@ -8,6 +8,9 @@ from textual.screen import Screen
 from textual.widgets import Header, Footer, Label, Input, Select, Button
 
 from app.config.profiles import MMProfile, load_profile, MMFitMode
+from app.ui.widgets.action_bar import MMActionBar
+from app.ui.widgets.heading import MMHeading
+from app.ui.widgets.panel import MMPanel
 
 
 class MMManageProfileScreen(Screen):
@@ -22,28 +25,7 @@ class MMManageProfileScreen(Screen):
         height: 100%;
         padding: 1;
     }
-    
-    .panel {
-        background: $surface-darken-1;
-        padding: 1;
-        margin-bottom: 1;
-    }
-    
-    .panel:last-child {
-        margin-bottom: 0;
-    }
-    
-    .heading {
-        color: $primary;
-        text-style: bold;
-        padding-bottom: 1;
-    }
-    
-    .actions {
-        width: 100%;
-        dock: bottom;
-    }
-    
+
     #settings-panel {
         height: auto;
     }
@@ -75,8 +57,8 @@ class MMManageProfileScreen(Screen):
         yield Footer(show_command_palette=False)
         with Horizontal():
             with Vertical(id='left-panel'):
-                with Container(id='settings-panel', classes='panel'):
-                    yield Label(content='Settings:', classes='heading')
+                with MMPanel(id='settings-panel'):
+                    yield MMHeading('Settings:')
                     yield Label(content='Background color:')
                     self.background_color_input = Input(id='background-color-input')
                     yield self.background_color_input
@@ -93,17 +75,17 @@ class MMManageProfileScreen(Screen):
                     self.compression_quality_input = Input(id='compression-quality-input')
                     yield self.compression_quality_input
 
-                with Container(id='screens-panel', classes='panel'):
-                    yield Label(content='Screens:', classes='heading')
+                with MMPanel(id='screens-panel'):
+                    yield MMHeading('Screens:')
                     yield Label(content='Not yet implemented')
-                    with Right(id='screens-actions', classes='actions'):
+                    with MMActionBar():
                         yield Button(id='add-screen-button', label='Add Screen')
 
             with Vertical(id='right-panel'):
-                with Container(id='image-sets-panel', classes='panel'):
-                    yield Label(content='Image Sets:', classes='heading')
+                with MMPanel(id='image-sets-panel'):
+                    yield MMHeading('Image Sets:')
                     yield Label(content='Not yet implemented')
-                    with Right(id='image-sets-actions', classes='actions'):
+                    with MMActionBar():
                         yield Button(id='add-image-set-button', label='Add Set', variant='primary')
 
     def on_mount(self):

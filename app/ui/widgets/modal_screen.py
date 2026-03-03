@@ -8,6 +8,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Label, Button
 
 from app.ui.widgets.action_bar import MMActionBar
+from app.ui.widgets.heading import MMHeading
 
 
 class MMModalScreen(ModalScreen):
@@ -52,9 +53,9 @@ class MMModalScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         with Container(id='modal-container'):
-            yield Label(self.modal_title, id='modal-title')
+            yield MMHeading(self.modal_title)
             yield from self.compose_content()
-            with MMActionBar(dock_bottom=True):
+            with MMActionBar():
                 yield Button(label=self.cancel_button_label, id='cancel-button', variant='error')
                 self._confirm_button = Button(label=self.confirm_button_label, id='confirm-button', variant='primary',
                                               disabled=self.confirm_button_disabled)

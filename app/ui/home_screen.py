@@ -11,6 +11,7 @@ from textual.widgets import ListView, ListItem, Static, Header, Footer, Label
 from app.config.profiles import list_profiles
 from app.ui.create_profile_modal import MMCreateProfileModal
 from app.ui.manage_profile_screen import MMManageProfileScreen
+from app.ui.widgets.heading import MMHeading
 
 
 class MMHomeScreen(Screen):
@@ -62,7 +63,7 @@ class MMHomeScreen(Screen):
         yield Footer(show_command_palette=False)
         with Horizontal():
             with Vertical(id="left-panel"):
-                yield Label('Existing profiles:', variant='primary')
+                yield MMHeading('Existing profiles:')
                 yield ListView(id="profile-list")
                 yield Static("No profiles yet", id="empty-state")
             with Vertical(id="right-panel"):
