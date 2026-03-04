@@ -93,6 +93,10 @@ class MMProfile(BaseModel):
         return v
 
 
+class MMProfileLoadSaveException(Exception):
+    pass
+
+
 def list_profiles() -> list[Path]:
     return sorted(PROFILES_DIR.glob("*.yaml"))
 
@@ -104,7 +108,7 @@ def load_profile(config_path: Path) -> MMProfile:
 
         return MMProfile.model_validate(data)
     except Exception as e:
-        raise RuntimeError(f'Failed to load configuration from {config_path}') from e
+        raise MMProfileLoadSaveException(f'Failed to load configuration from {config_path}') from e
 
 
 def write_profile(config_path: Path, data: MMProfile):
@@ -113,4 +117,4 @@ def write_profile(config_path: Path, data: MMProfile):
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(model_dump, f, sort_keys=False)
     except Exception as e:
-        raise RuntimeError(f'Failed to save configuration to {config_path}') from e
+        raise MMProfileLoadSaveException(f'Failed to save configuration to {config_path}') from e

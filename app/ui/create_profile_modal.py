@@ -46,7 +46,7 @@ class MMCreateProfileModal(MMModalScreen):
 
         write_profile(profile_path, p)
 
-        return profile_path
+        return profile_path, p
 
     @on(Input.Changed, '#profile-name')
     def on_profile_name_changed(self, event: Input.Changed):

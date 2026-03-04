@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from PIL.TiffImagePlugin import MM
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -8,7 +7,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import ListView, ListItem, Static, Header, Footer, Label
 
-from app.config.profiles import list_profiles
+from app.config.profiles import list_profiles, load_profile, MMProfileLoadSaveException, MMProfile
 from app.ui.create_profile_modal import MMCreateProfileModal
 from app.ui.manage_profile_screen import MMManageProfileScreen
 from app.ui.widgets.heading import MMHeading
@@ -103,12 +102,22 @@ class MMHomeScreen(Screen):
         selected_index = event.list_view.index
         if selected_index is not None:
             path = self.available_profiles[selected_index]
-            self.app.push_screen(MMManageProfileScreen(path))
+
+            async def _load_profile():
+                try:
+                    p = load_profile(path)
+                    self.app.push_screen(MMManageProfileScreen(path, p))
+                except MMProfileLoadSaveException as e:
+                    self.notify(str(e), severity='error')
+
+            self.run_worker(_load_profile, exclusive=True)
 
     def action_create_new_profile(self):
-        async def on_profile_modal_dismiss(path: Path | None):
+        async def on_profile_modal_dismiss(result: tuple[Path, MMProfile] | None):
+            if result is None: return
             self.on_mount()
-            if path: self.app.push_screen(MMManageProfileScreen(path))
+            path, p = result
+            self.app.push_screen(MMManageProfileScreen(path, p))
 
         m = MMCreateProfileModal(self.available_profiles)
         self.app.push_screen(m, callback=on_profile_modal_dismiss)
