@@ -8,7 +8,7 @@ from textual.screen import Screen
 from textual.widgets import ListView, ListItem, Static, Header, Footer, Label
 
 from app.config.profiles import list_profiles, load_profile, MMProfileLoadSaveException, MMProfile
-from app.ui.create_profile_modal import MMCreateProfileModal
+from app.ui.modals.create_profile_modal import MMCreateProfileModal
 from app.ui.manage_profile_screen import MMManageProfileScreen
 from app.ui.widgets.heading import MMHeading
 

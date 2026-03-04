@@ -33,7 +33,9 @@ class MMCreateProfileModal(MMModalScreen):
         self._profile_name_input = Input(id='profile-name', type='text')
         yield self._profile_name_input
         yield Label('Detect screens:')
-        self._detect_screens_input = Select(id='detect-screens', options=self._detect_screens_options, value='xrandr')
+        self._detect_screens_input = Select(id='detect-screens',
+                                            options=self._detect_screens_options,
+                                            value='xrandr')
         yield self._detect_screens_input
 
     def handle_confirm(self) -> Any:

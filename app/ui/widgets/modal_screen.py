@@ -66,6 +66,7 @@ class MMModalScreen(ModalScreen):
             case "cancel-button":
                 result = self.handle_cancel()
             case "confirm-button":
+                if self.confirm_button_disabled: return
                 result = self.handle_confirm()
             case _:
                 raise NotImplementedError(f"Unknown button pressed with id {event.button.id}.")

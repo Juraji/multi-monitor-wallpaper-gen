@@ -15,6 +15,10 @@ IMAGE_FILTERS = Filters(
     ('GIF', lambda f: f.suffix.lower() == '.gif'),
 )
 
+ICC_FILTERS = Filters(
+    ('ICC Color Profile', lambda f: f.suffix.lower() == '.icc'),
+)
+
 
 class MMFileSelect(Horizontal):
     DEFAULT_CSS = """
@@ -38,16 +42,15 @@ class MMFileSelect(Horizontal):
 
     @rich_repr_auto
     class Changed(Message):
-        def __init__(self, select: 'MMFileSelect', value: Path | None):
+        def __init__(self, control: 'MMFileSelect', value: Path | None):
             super().__init__()
-            self.select = select
+            self.select = control
             self.value = value
 
         def __rich_repr__(self) -> RichResult:
             yield self.select
             yield self.value
 
-        @property
         def control(self) -> 'MMFileSelect':
             return self.select
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 from PIL.ImageColor import colormap
 from textual import on
@@ -7,9 +8,10 @@ from textual.binding import Binding
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
 from textual.validation import Integer
-from textual.widgets import Header, Footer, Label, Input, Select, Button
+from textual.widgets import Header, Footer, Label, Input, Select, Button, ListItem, ListView
 
-from app.config.profiles import MMProfile, MMFitMode, write_profile
+from app.config.profiles import MMProfile, MMFitMode, write_profile, MMScreen
+from app.ui.modals.edit_screen_modal import MMEditScreenModal
 from app.ui.widgets.action_bar import MMActionBar
 from app.ui.widgets.file_select import MMFileSelect, IMAGE_FILTERS
 from app.ui.widgets.heading import MMHeading
@@ -72,26 +74,59 @@ class _SettingsPanel(MMPanel):
         self.profile.compression_quality = int(e.value)
 
 
+class ScreenItem(ListItem):
+    def __init__(self, screen: MMScreen):
+        super().__init__()
+        self.mm_screen = screen
+
+    def compose(self) -> ComposeResult:
+        s = self.mm_screen
+        yield Label(content=f'{s.device_id} - {s.width}x{s.height} @ {s.x_pos},{s.y_pos}')
+
+
 class _ScreensPanel(MMPanel):
     profile: MMProfile
+    screen_list_view: ListView | None
 
     def __init__(self, profile: MMProfile):
         super().__init__()
         self.profile = profile
+        self.screen_list_view = None
 
     def compose(self) -> ComposeResult:
         yield MMHeading('Screens:')
-        yield Label(content='Not yet implemented')
+        self.screen_list_view = ListView(id="screen-list")
+        yield self.screen_list_view
         with MMActionBar():
             yield Button(id='add-screen-button', label='Add Screen')
+
+    def on_mount(self):
+        self.render_screen_items()
+
+    def render_screen_items(self):
+        self.screen_list_view.clear()
+        if not len(self.profile.screens):
+            self.screen_list_view.append(ListItem(Label('No screens defined!'), disabled=True))
+        for s in self.profile.screens:
+            self.screen_list_view.append(ScreenItem(s))
+
+    @on(ListView.Selected, "#screen-list")
+    def on_screen_list_select(self, e: ListView.Selected):
+        index = e.index
+        item = cast(ScreenItem, e.item)
+        modal = MMEditScreenModal(item.mm_screen)
+
+        async def on_edit_screen_modal_dismiss(result: MMScreen | None):
+            if result is None: return
+            self.profile.screens[index] = result
+            self.render_screen_items()
+
+        self.app.push_screen(modal, callback=on_edit_screen_modal_dismiss)
 
     @on(Button.Pressed, '#add-screen-button')
     def on_add_screen(self):
         # TODO: Create and open modal with fields to add a screen.
         pass
-
-    def validate(self) -> bool:
-        return True
 
 
 class _ImageSetsPanel(MMPanel):
