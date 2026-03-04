@@ -7,7 +7,7 @@ from textual.widgets import Label, Input, Select
 
 from app.config.constants import PROFILES_DIR
 from app.config.profiles import MMProfile, write_profile
-from app.screens import get_screen_layout
+from app.screens import get_monitor_layout
 from app.ui.widgets.modal_screen import MMModalScreen
 
 
@@ -43,8 +43,8 @@ class MMCreateProfileModal(MMModalScreen):
         detect_backend = self._detect_screens_input.value
 
         profile_path = PROFILES_DIR / f'{name}.yaml'
-        screens = get_screen_layout(detect_backend)
-        p = MMProfile(screens=screens)
+        monitors = get_monitor_layout(detect_backend)
+        p = MMProfile(monitors=monitors)
 
         write_profile(profile_path, p)
 

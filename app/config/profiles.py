@@ -13,7 +13,7 @@ class MMFitMode(Enum):
     CONTAIN = 'CONTAIN'
 
 
-class MMScreen(BaseModel):
+class MMMonitor(BaseModel):
     device_id: str = Field(description='Device ID')
     x_pos: int = Field(description='Screen x position')
     y_pos: int = Field(description='Screen y position')
@@ -35,7 +35,7 @@ class MMScreen(BaseModel):
 
 
 class MMScreenLayout:
-    screens: list[MMScreen]
+    monitors: list[MMMonitor]
     min_x: int
     min_y: int
     max_x: int
@@ -43,9 +43,9 @@ class MMScreenLayout:
     total_width: int
     total_height: int
 
-    def __init__(self, screens: list[MMScreen]):
+    def __init__(self, screens: list[MMMonitor]):
         screens.sort(key=lambda s: (s.y_pos, s.x_pos))
-        self.screens = screens
+        self.monitors = screens
         self.min_x = min(s.x_pos for s in screens)
         self.min_y = min(s.y_pos for s in screens)
         self.max_x = max(s.x_pos + s.width for s in screens)
@@ -68,7 +68,7 @@ class MMImageSet(BaseModel):
 
 
 class MMProfile(BaseModel):
-    screens: list[MMScreen] = Field(description='Screen list', default=[])
+    monitors: list[MMMonitor] = Field(description='Screen list', default=[])
     background_color: str = Field(description='Background color', default='black')
     default_image: Path | None = Field(description='Default image path', default=None)
     fit_mode: MMFitMode = Field(description='Image fit mode', default=MMFitMode.COVER)

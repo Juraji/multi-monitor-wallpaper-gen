@@ -10,8 +10,8 @@ from textual.screen import Screen
 from textual.validation import Integer
 from textual.widgets import Header, Footer, Label, Input, Select, Button, ListItem, ListView
 
-from app.config.profiles import MMProfile, MMFitMode, write_profile, MMScreen
-from app.ui.modals.edit_screen_modal import MMEditScreenModal
+from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor
+from app.ui.modals.edit_screen_modal import MMEditMonitorModal
 from app.ui.widgets.action_bar import MMActionBar
 from app.ui.widgets.file_select import MMFileSelect, IMAGE_FILTERS
 from app.ui.widgets.heading import MMHeading
@@ -74,57 +74,57 @@ class _SettingsPanel(MMPanel):
         self.profile.compression_quality = int(e.value)
 
 
-class ScreenItem(ListItem):
-    def __init__(self, screen: MMScreen):
+class _MonitorItem(ListItem):
+    def __init__(self, monitor: MMMonitor):
         super().__init__()
-        self.mm_screen = screen
+        self.monitor = monitor
 
     def compose(self) -> ComposeResult:
-        s = self.mm_screen
-        yield Label(content=f'{s.device_id} - {s.width}x{s.height} @ {s.x_pos},{s.y_pos}')
+        m = self.monitor
+        yield Label(content=f'{m.device_id} - {m.width}x{m.height} @ {m.x_pos},{m.y_pos}')
 
 
 class _ScreensPanel(MMPanel):
     profile: MMProfile
-    screen_list_view: ListView | None
+    monitor_list_view: ListView | None
 
     def __init__(self, profile: MMProfile):
         super().__init__()
         self.profile = profile
-        self.screen_list_view = None
+        self.monitor_list_view = None
 
     def compose(self) -> ComposeResult:
-        yield MMHeading('Screens:')
-        self.screen_list_view = ListView(id="screen-list")
-        yield self.screen_list_view
+        yield MMHeading('Monitors:')
+        self.monitor_list_view = ListView(id="monitor-list")
+        yield self.monitor_list_view
         with MMActionBar():
-            yield Button(id='add-screen-button', label='Add Screen')
+            yield Button(id='add-monitor-button', label='Add Monitor')
 
     def on_mount(self):
-        self.render_screen_items()
+        self.render_monitor_items()
 
-    def render_screen_items(self):
-        self.screen_list_view.clear()
-        if not len(self.profile.screens):
-            self.screen_list_view.append(ListItem(Label('No screens defined!'), disabled=True))
-        for s in self.profile.screens:
-            self.screen_list_view.append(ScreenItem(s))
+    def render_monitor_items(self):
+        self.monitor_list_view.clear()
+        if not len(self.profile.monitors):
+            self.monitor_list_view.append(ListItem(Label('No screens defined!'), disabled=True))
+        for s in self.profile.monitors:
+            self.monitor_list_view.append(_MonitorItem(s))
 
-    @on(ListView.Selected, "#screen-list")
-    def on_screen_list_select(self, e: ListView.Selected):
+    @on(ListView.Selected, "#monitor-list")
+    def on_monitor_list_select(self, e: ListView.Selected):
         index = e.index
-        item = cast(ScreenItem, e.item)
-        modal = MMEditScreenModal(item.mm_screen)
+        item = cast(_MonitorItem, e.item)
+        modal = MMEditMonitorModal(item.monitor)
 
-        async def on_edit_screen_modal_dismiss(result: MMScreen | None):
+        async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
             if result is None: return
-            self.profile.screens[index] = result
-            self.render_screen_items()
+            self.profile.monitors[index] = result
+            self.render_monitor_items()
 
-        self.app.push_screen(modal, callback=on_edit_screen_modal_dismiss)
+        self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
 
-    @on(Button.Pressed, '#add-screen-button')
-    def on_add_screen(self):
+    @on(Button.Pressed, '#add-monitor-button')
+    def on_add_monitor(self):
         # TODO: Create and open modal with fields to add a screen.
         pass
 
@@ -146,9 +146,6 @@ class _ImageSetsPanel(MMPanel):
     def on_add_image_set(self):
         # TODO: Create and open modal with fields to add an image set.
         pass
-
-    def validate(self) -> bool:
-        return True
 
 
 class MMManageProfileScreen(Screen):

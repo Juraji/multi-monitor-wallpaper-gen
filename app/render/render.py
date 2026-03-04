@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile, Intent, createProfile, profileToProfile
 
-from app.config.profiles import MMScreen, MMImageSet, MMScreenLayout, MMFitMode
+from app.config.profiles import MMMonitor, MMImageSet, MMScreenLayout, MMFitMode
 
 SRGB_PROFILE = ImageCmsProfile(createProfile('sRGB'))
 IMAGE_MODE = 'RGB'
@@ -28,7 +28,7 @@ def __bake_color_profile(image: Image.Image, target_profile: ImageCmsProfile):
     )
 
 
-def __fit_image_to_screen_cover(image: Image.Image, screen: MMScreen) -> Image.Image:
+def __fit_image_to_screen_cover(image: Image.Image, screen: MMMonitor) -> Image.Image:
     if image.width == screen.width and image.height == screen.height:
         return image
 
@@ -56,7 +56,7 @@ def __fit_image_to_screen_cover(image: Image.Image, screen: MMScreen) -> Image.I
     return scaled_image.crop((left_crop, top_crop, right_crop, bottom_crop))
 
 
-def __fit_image_to_screen_contain(image: Image.Image, screen: MMScreen, background_color: str) -> Image.Image:
+def __fit_image_to_screen_contain(image: Image.Image, screen: MMMonitor, background_color: str) -> Image.Image:
     if image.width == screen.width and image.height == screen.height:
         return image
 
@@ -95,7 +95,7 @@ def render_image_set(image_set: MMImageSet,
                      compression_quality: int):
     base_image = Image.new(IMAGE_MODE, (layout.total_width, layout.total_height), color=background_color)
 
-    for i, screen in enumerate(layout.screens):
+    for i, screen in enumerate(layout.monitors):
         if i >= len(image_set.images):
             if default_image is None:
                 break  # Leave other screen areas to background_color

@@ -3,7 +3,7 @@ from argparse import Namespace, ArgumentParser
 from pathlib import Path
 
 from app.config.profiles import MMProfile, MMImageSet, write_profile
-from app.screens import get_screen_layout, BACKENDS
+from app.screens import get_monitor_layout, BACKENDS
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +36,11 @@ def init_cmd(args: Namespace):
             logger.warning(f'Overwriting existing configuration file at {config_path} because of force parameter.')
 
     logger.info(f'Detecting screen layout using backend {args.backend}..')
-    screens = get_screen_layout(args.backend)
+    screens = get_monitor_layout(args.backend)
     logger.info(f'Found {len(screens)} screens.')
 
     new_config = MMProfile(
-        screens=screens,
+        monitors=screens,
         # Add a single example set
         image_sets=[
             MMImageSet.model_construct(

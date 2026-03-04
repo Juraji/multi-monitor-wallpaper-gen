@@ -1,6 +1,6 @@
 import subprocess
 
-from app.config.profiles import MMScreen
+from app.config.profiles import MMMonitor
 
 
 def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:
@@ -119,7 +119,7 @@ def _xrandr_list_color_profiles() -> dict[str, str]:
     return devices
 
 
-def get_xrandr_screen_layout() -> list[MMScreen]:
+def get_xrandr_monitor_layout() -> list[MMMonitor]:
     try:
         active_monitors = _xrandr_list_active_monitors()
 
@@ -129,7 +129,7 @@ def get_xrandr_screen_layout() -> list[MMScreen]:
         color_profiles = _xrandr_list_color_profiles()
 
         return [
-            MMScreen(
+            MMMonitor(
                 device_id=device_id,
                 x_pos=x_pos,
                 y_pos=y_pos,

@@ -60,7 +60,7 @@ def generate_cmd(args: Namespace):
 
     logger.info(f"""\
 Configuration loaded:
-  Screens: {len(profile.screens)}
+  Screens: {len(profile.monitors)}
   Image sets: {len(profile.image_sets)}
   Replace images: {'yes' if replace_images else 'no'}
   Max workers: {max_workers}
@@ -76,7 +76,7 @@ Configuration loaded:
         logging.info(f'Creating directory {output_dir}...')
         output_dir.mkdir(parents=True)
 
-    screen_layout = MMScreenLayout(profile.screens)
+    screen_layout = MMScreenLayout(profile.monitors)
 
     def image_set_handler(image_set: MMImageSet, index: int):
         file_name = image_set.file_name.format(index=index)
