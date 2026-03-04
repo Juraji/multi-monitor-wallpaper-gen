@@ -125,8 +125,18 @@ class _ScreensPanel(MMPanel):
 
     @on(Button.Pressed, '#add-monitor-button')
     def on_add_monitor(self):
-        # TODO: Create and open modal with fields to add a screen.
-        pass
+        async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
+            if result is None: return
+            self.profile.monitors.append(result)
+            self.render_monitor_items()
+
+        new_monitor = MMMonitor(device_id='New Monitor',
+                                x_pos=0,
+                                y_pos=0,
+                                width=1920,
+                                height=1080)
+        modal = MMEditMonitorModal(new_monitor)
+        self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
 
 
 class _ImageSetsPanel(MMPanel):
