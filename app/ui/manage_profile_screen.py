@@ -11,7 +11,7 @@ from textual.screen import Screen
 from textual.validation import Integer
 from textual.widgets import Header, Footer, Label, Input, Select, Button, ListItem, ListView
 
-from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor
+from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor, MMScreenLayout
 from app.ui.modals.confirm_modal import MMConfirmModal
 from app.ui.modals.edit_screen_modal import MMEditMonitorModal
 from app.ui.widgets.action_bar import MMActionBar
@@ -21,12 +21,6 @@ from app.ui.widgets.panel import MMPanel
 
 
 class _SettingsPanel(MMPanel):
-    CSS = """
-    _SettingsPanel {
-        height: auto;
-    }
-    """
-
     profile: MMProfile
 
     def __init__(self, profile: MMProfile):
@@ -114,28 +108,39 @@ class _MonitorItem(ListItem):
 class _MonitorsPanel(MMPanel):
     profile: MMProfile
     monitor_list_view: ListView | None
+    details_label: Label | None
 
     def __init__(self, profile: MMProfile):
         super().__init__()
         self.profile = profile
         self.monitor_list_view = None
+        self.details_label = None
 
     def compose(self) -> ComposeResult:
         yield MMHeading('Monitors:')
         self.monitor_list_view = ListView(id="monitor-list")
         yield self.monitor_list_view
+        self.details_label = Label('')
+        yield self.details_label
         with MMActionBar():
             yield Button(id='add-monitor-button', label='Add Monitor')
 
     def on_mount(self):
-        self.render_monitor_items()
+        self.update_monitor_list()
 
-    def render_monitor_items(self):
+    def update_monitor_list(self):
         self.monitor_list_view.clear()
         if not len(self.profile.monitors):
-            self.monitor_list_view.append(ListItem(Label('No screens defined!'), disabled=True))
+            self.monitor_list_view.append(ListItem(Label('No monitors defined!'), disabled=True))
+            self.details_label.styles.display = "none"
+            return
+
         for i, s in enumerate(self.profile.monitors):
             self.monitor_list_view.append(_MonitorItem(s, i))
+
+        layout = MMScreenLayout(self.profile.monitors)
+        self.details_label.styles.display = "block"
+        self.details_label.content = f'Desktop size: {layout.total_width}x{layout.total_height}'
 
     @on(_MonitorItem.EditMonitor)
     def on_edit_monitor(self, e: _MonitorItem.EditMonitor):
@@ -145,7 +150,7 @@ class _MonitorsPanel(MMPanel):
         async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
             if result is None: return
             self.profile.monitors[index] = result
-            self.render_monitor_items()
+            self.update_monitor_list()
             self.notify('Monitor updated!')
 
         self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
@@ -155,7 +160,7 @@ class _MonitorsPanel(MMPanel):
         async def on_confirm_modal_dismiss(result: bool):
             if not result: return
             del self.profile.monitors[e.index]
-            self.render_monitor_items()
+            self.update_monitor_list()
             self.notify(f'Monitor "{e.monitor.device_id}" removed!')
 
         confirm = MMConfirmModal('Are you sure you want to remove this monitor?')
@@ -166,7 +171,7 @@ class _MonitorsPanel(MMPanel):
         async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
             if result is None: return
             self.profile.monitors.append(result)
-            self.render_monitor_items()
+            self.update_monitor_list()
 
         new_monitor = MMMonitor(device_id='New Monitor',
                                 x_pos=0,
@@ -207,6 +212,16 @@ class MMManageProfileScreen(Screen):
         width: 60%;
         height: 100%;
         padding: 1;
+    }
+    
+    _SettingsPanel {
+        height: auto;
+    }
+    _MonitorsPanel {
+        height: 1fr;
+    }
+    _ImageSetsPanel {
+        height: 1fr;
     }
     """
 
