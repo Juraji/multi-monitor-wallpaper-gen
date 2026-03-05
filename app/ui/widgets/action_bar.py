@@ -13,6 +13,10 @@ class MMActionBar(Horizontal):
         width: 100%;
         padding-top: 1;
         align-horizontal: right;
+        
+        &.compact {
+            padding-top: 0;
+        }
     }
 
     MMActionBar Button {
@@ -20,9 +24,11 @@ class MMActionBar(Horizontal):
     }
     """
 
-    def __init__(self, dock_bottom: bool = True, **kwargs):
+    def __init__(self, dock_bottom: bool = True, compact: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.dock_bottom = dock_bottom
+        if compact:
+            self.add_class('compact')
 
     def watch_dock_bottom(self, dock_bottom: bool):
         if dock_bottom:

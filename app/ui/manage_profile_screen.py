@@ -6,11 +6,13 @@ from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, Horizontal
+from textual.message import Message
 from textual.screen import Screen
 from textual.validation import Integer
 from textual.widgets import Header, Footer, Label, Input, Select, Button, ListItem, ListView
 
 from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor
+from app.ui.modals.confirm_modal import MMConfirmModal
 from app.ui.modals.edit_screen_modal import MMEditMonitorModal
 from app.ui.widgets.action_bar import MMActionBar
 from app.ui.widgets.file_select import MMFileSelect, IMAGE_FILTERS
@@ -75,16 +77,41 @@ class _SettingsPanel(MMPanel):
 
 
 class _MonitorItem(ListItem):
-    def __init__(self, monitor: MMMonitor):
+    class EditMonitor(Message):
+        def __init__(self, monitor: MMMonitor, index: int):
+            super().__init__()
+            self.monitor = monitor
+            self.index = index
+
+    class RemoveMonitor(Message):
+        def __init__(self, monitor: MMMonitor, index: int):
+            super().__init__()
+            self.monitor = monitor
+            self.index = index
+
+    def __init__(self, monitor: MMMonitor, index: int):
         super().__init__()
         self.monitor = monitor
+        self.index = index
 
     def compose(self) -> ComposeResult:
         m = self.monitor
-        yield Label(content=f'{m.device_id} - {m.width}x{m.height} @ {m.x_pos},{m.y_pos}')
+        label = f'{m.device_id} - {m.width}x{m.height} @ {m.x_pos},{m.y_pos}'
+        yield Label(content=label)
+        with MMActionBar(compact=True):
+            yield Button('Edit', id='edit-monitor', compact=True)
+            yield Button('Remove', id='remove-monitor', compact=True)
+
+    @on(Button.Pressed, '#edit-monitor')
+    def on_edit_pressed(self, e: Button.Pressed):
+        self.post_message(self.EditMonitor(self.monitor, self.index))
+
+    @on(Button.Pressed, '#remove-monitor')
+    def on_remove_pressed(self, e: Button.Pressed):
+        self.post_message(self.RemoveMonitor(self.monitor, self.index))
 
 
-class _ScreensPanel(MMPanel):
+class _MonitorsPanel(MMPanel):
     profile: MMProfile
     monitor_list_view: ListView | None
 
@@ -107,21 +134,32 @@ class _ScreensPanel(MMPanel):
         self.monitor_list_view.clear()
         if not len(self.profile.monitors):
             self.monitor_list_view.append(ListItem(Label('No screens defined!'), disabled=True))
-        for s in self.profile.monitors:
-            self.monitor_list_view.append(_MonitorItem(s))
+        for i, s in enumerate(self.profile.monitors):
+            self.monitor_list_view.append(_MonitorItem(s, i))
 
-    @on(ListView.Selected, "#monitor-list")
-    def on_monitor_list_select(self, e: ListView.Selected):
+    @on(_MonitorItem.EditMonitor)
+    def on_edit_monitor(self, e: _MonitorItem.EditMonitor):
         index = e.index
-        item = cast(_MonitorItem, e.item)
-        modal = MMEditMonitorModal(item.monitor)
+        modal = MMEditMonitorModal(e.monitor)
 
         async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
             if result is None: return
             self.profile.monitors[index] = result
             self.render_monitor_items()
+            self.notify('Monitor updated!')
 
         self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
+
+    @on(_MonitorItem.RemoveMonitor)
+    def on_remove_monitor(self, e: _MonitorItem.RemoveMonitor):
+        async def on_confirm_modal_dismiss(result: bool):
+            if not result: return
+            del self.profile.monitors[e.index]
+            self.render_monitor_items()
+            self.notify(f'Monitor "{e.monitor.device_id}" removed!')
+
+        confirm = MMConfirmModal('Are you sure you want to remove this monitor?')
+        self.app.push_screen(confirm, callback=on_confirm_modal_dismiss)
 
     @on(Button.Pressed, '#add-monitor-button')
     def on_add_monitor(self):
@@ -177,7 +215,7 @@ class MMManageProfileScreen(Screen):
     profile: MMProfile
 
     settings_panel: _SettingsPanel
-    screens_panel: _ScreensPanel
+    screens_panel: _MonitorsPanel
     image_sets_panel: _ImageSetsPanel
 
     BINDINGS = [
@@ -201,7 +239,7 @@ class MMManageProfileScreen(Screen):
                 self.settings_panel = _SettingsPanel(self.profile)
                 yield self.settings_panel
 
-                self.screens_panel = _ScreensPanel(self.profile)
+                self.screens_panel = _MonitorsPanel(self.profile)
                 yield self.screens_panel
 
             with Vertical(id='right-panel'):
