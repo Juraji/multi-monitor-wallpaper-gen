@@ -55,7 +55,7 @@ class MMScreenLayout:
 
 
 class MMImageSet(BaseModel):
-    file_name: str = Field(description='Image name', min_length=1, default="Wallpaper %d.jpg")
+    file_name: str = Field(description='Image name', min_length=1, default="Wallpaper {index}.jpg")
     images: list[Path] = Field(description='Paths to images to use for this set', min_length=1, default=[])
 
     @field_validator('images', mode='after')

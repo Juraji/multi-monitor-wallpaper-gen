@@ -5,7 +5,7 @@ from textual.widgets import Label
 class MMHeading(Label):
     DEFAULT_CSS = """
     MMHeading {
-        color: $primary;
+        color: $text-accent;
         text-style: bold;
         padding-bottom: 1;
     }

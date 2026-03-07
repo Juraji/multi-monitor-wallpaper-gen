@@ -1,5 +1,6 @@
 from typing import Any
 
+from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
@@ -26,7 +27,7 @@ class MMModalScreen(ModalScreen):
     }
     
     #modal-title {
-        color: $primary;
+        color: $text-accent;
         text-style: bold;
         margin-bottom: 1;
     }
@@ -61,16 +62,14 @@ class MMModalScreen(ModalScreen):
                                               disabled=self.confirm_button_disabled)
                 yield self._confirm_button
 
-    def on_button_pressed(self, event: Button.Pressed):
-        match event.button.id:
-            case "cancel-button":
-                result = self.handle_cancel()
-            case "confirm-button":
-                if self.confirm_button_disabled: return
-                result = self.handle_confirm()
-            case _:
-                raise NotImplementedError(f"Unknown button pressed with id {event.button.id}.")
+    @on(Button.Pressed, '#confirm-button')
+    def on_confirm(self):
+        result = self.handle_confirm()
+        self.dismiss(result)
 
+    @on(Button.Pressed, '#cancel-button')
+    def on_cancel(self):
+        result = self.handle_cancel()
         self.dismiss(result)
 
     def action_cancel_modal(self):

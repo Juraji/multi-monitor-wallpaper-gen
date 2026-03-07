@@ -11,8 +11,9 @@ from textual.screen import Screen
 from textual.validation import Integer
 from textual.widgets import Header, Footer, Label, Input, Select, Button, ListItem, ListView
 
-from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor, MMScreenLayout
+from app.config.profiles import MMProfile, MMFitMode, write_profile, MMMonitor, MMScreenLayout, MMImageSet
 from app.ui.modals.confirm_modal import MMConfirmModal
+from app.ui.modals.edit_image_set_modal import MMEditImageSetModal
 from app.ui.modals.edit_screen_modal import MMEditMonitorModal
 from app.ui.widgets.action_bar import MMActionBar
 from app.ui.widgets.file_select import MMFileSelect, IMAGE_FILTERS
@@ -97,11 +98,11 @@ class _MonitorItem(ListItem):
             yield Button('Remove', id='remove-monitor', compact=True)
 
     @on(Button.Pressed, '#edit-monitor')
-    def on_edit_pressed(self, e: Button.Pressed):
+    def on_edit_pressed(self):
         self.post_message(self.EditMonitor(self.monitor, self.index))
 
     @on(Button.Pressed, '#remove-monitor')
-    def on_remove_pressed(self, e: Button.Pressed):
+    def on_remove_pressed(self):
         self.post_message(self.RemoveMonitor(self.monitor, self.index))
 
 
@@ -142,36 +143,13 @@ class _MonitorsPanel(MMPanel):
         self.details_label.styles.display = "block"
         self.details_label.content = f'Desktop size: {layout.total_width}x{layout.total_height}'
 
-    @on(_MonitorItem.EditMonitor)
-    def on_edit_monitor(self, e: _MonitorItem.EditMonitor):
-        index = e.index
-        modal = MMEditMonitorModal(e.monitor)
-
-        async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
-            if result is None: return
-            self.profile.monitors[index] = result
-            self.update_monitor_list()
-            self.notify('Monitor updated!')
-
-        self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
-
-    @on(_MonitorItem.RemoveMonitor)
-    def on_remove_monitor(self, e: _MonitorItem.RemoveMonitor):
-        async def on_confirm_modal_dismiss(result: bool):
-            if not result: return
-            del self.profile.monitors[e.index]
-            self.update_monitor_list()
-            self.notify(f'Monitor "{e.monitor.device_id}" removed!')
-
-        confirm = MMConfirmModal('Are you sure you want to remove this monitor?')
-        self.app.push_screen(confirm, callback=on_confirm_modal_dismiss)
-
     @on(Button.Pressed, '#add-monitor-button')
     def on_add_monitor(self):
         async def on_edit_monitor_modal_dismiss(result: MMMonitor | None):
             if result is None: return
             self.profile.monitors.append(result)
             self.update_monitor_list()
+            self.notify('Monitor added!')
 
         new_monitor = MMMonitor(device_id='New Monitor',
                                 x_pos=0,
@@ -181,9 +159,77 @@ class _MonitorsPanel(MMPanel):
         modal = MMEditMonitorModal(new_monitor)
         self.app.push_screen(modal, callback=on_edit_monitor_modal_dismiss)
 
+    @on(_MonitorItem.EditMonitor)
+    def on_edit_monitor(self, e: _MonitorItem.EditMonitor):
+        index = e.index
+        modal = MMEditMonitorModal(e.monitor)
+
+        async def on_modal_dismiss(result: MMMonitor | None):
+            if result is None: return
+            self.profile.monitors[index] = result
+            self.update_monitor_list()
+            self.notify('Monitor updated!')
+
+        self.app.push_screen(modal, callback=on_modal_dismiss)
+
+    @on(_MonitorItem.RemoveMonitor)
+    def on_remove_monitor(self, e: _MonitorItem.RemoveMonitor):
+        async def on_modal_dismiss(result: bool):
+            if not result: return
+            del self.profile.monitors[e.index]
+            self.update_monitor_list()
+            self.notify(f'Monitor "{e.monitor.device_id}" removed!')
+
+        confirm = MMConfirmModal('Are you sure you want to remove this monitor?')
+        self.app.push_screen(confirm, callback=on_modal_dismiss)
+
+
+class _ImageSetItem(ListItem):
+    DEFAULT_CSS = """
+    .image-set-image {
+        color: $text-muted;
+    }
+    """
+
+    class EditImageSet(Message):
+        def __init__(self, image_set: MMImageSet, index: int):
+            super().__init__()
+            self.image_set = image_set
+            self.index = index
+
+    class RemoveImageSet(Message):
+        def __init__(self, image_set: MMImageSet, index: int):
+            super().__init__()
+            self.image_set = image_set
+            self.index = index
+
+    def __init__(self, image_set: MMImageSet, index: int):
+        super().__init__()
+        self.image_set = image_set
+        self.index = index
+
+    def compose(self) -> ComposeResult:
+        label = f'{self.index + 1}: {self.image_set.file_name} ({len(self.image_set.images)} images)'
+        yield Label(content=label)
+        for image in self.image_set.images:
+            yield Label(f'  - {image.name}', classes='image-set-image')
+
+        with MMActionBar(compact=True):
+            yield Button('Edit', id='edit-image-set', compact=True)
+            yield Button('Remove', id='remove-image-set', compact=True)
+
+    @on(Button.Pressed, '#edit-image-set')
+    def on_edit_pressed(self):
+        self.post_message(self.EditImageSet(self.image_set, self.index))
+
+    @on(Button.Pressed, '#remove-image-set')
+    def on_remove_pressed(self):
+        self.post_message(self.RemoveImageSet(self.image_set, self.index))
+
 
 class _ImageSetsPanel(MMPanel):
     profile: MMProfile
+    image_set_list_view: ListView | None
 
     def __init__(self, profile: MMProfile):
         super().__init__()
@@ -191,14 +237,57 @@ class _ImageSetsPanel(MMPanel):
 
     def compose(self) -> ComposeResult:
         yield MMHeading('Image Sets:')
-        yield Label(content='Not yet implemented')
+        self.image_set_list_view = ListView(id='image-set-list')
+        yield self.image_set_list_view
         with MMActionBar():
             yield Button(id='add-image-set-button', label='Add Set', variant='primary')
 
+    def on_mount(self):
+        self.update_image_set_list()
+
+    def update_image_set_list(self):
+        self.image_set_list_view.clear()
+        if not len(self.profile.image_sets):
+            self.image_set_list_view.append(ListItem(Label('No image sets defined!'), disabled=True))
+            return
+
+        for i, s in enumerate(self.profile.image_sets):
+            self.image_set_list_view.append(_ImageSetItem(s, i))
+
     @on(Button.Pressed, '#add-image-set-button')
     def on_add_image_set(self):
-        # TODO: Create and open modal with fields to add an image set.
-        pass
+        async def on_modal_dismiss(result: MMImageSet | None):
+            if result is None: return
+            self.profile.image_sets.append(result)
+            self.update_image_set_list()
+            self.notify('Image set added!')
+
+        new_image_set = MMImageSet()
+        modal = MMEditImageSetModal(None, new_image_set)
+        self.app.push_screen(modal, callback=on_modal_dismiss)
+
+    @on(_ImageSetItem.EditImageSet)
+    def on_edit_image_set(self, e: _ImageSetItem.EditImageSet):
+        modal = MMEditImageSetModal(e.index, e.image_set)
+
+        async def on_modal_dismiss(result: MMImageSet | None):
+            if not result: return
+            self.profile.image_sets[e.index] = result
+            self.update_image_set_list()
+            self.notify('Image set updated!')
+
+        self.app.push_screen(modal, callback=on_modal_dismiss)
+
+    @on(_ImageSetItem.RemoveImageSet)
+    def on_remove_image_set(self, e: _ImageSetItem.RemoveImageSet):
+        async def on_modal_dismiss(result: bool):
+            if not result: return
+            del self.profile.image_sets[e.index]
+            self.update_image_set_list()
+            self.notify(f'Image set ({e.index + 1}) "{e.image_set.file_name}" removed!')
+
+        confirm = MMConfirmModal('Are you sure you want to remove this image set?')
+        self.app.push_screen(confirm, callback=on_modal_dismiss)
 
 
 class MMManageProfileScreen(Screen):

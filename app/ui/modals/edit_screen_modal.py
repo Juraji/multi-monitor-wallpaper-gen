@@ -30,7 +30,7 @@ class MMEditMonitorModal(MMModalScreen):
     icc_input: MMFileSelect
 
     def __init__(self, monitor: MMMonitor | None):
-        super().__init__(modal_title="Edit Monitor",
+        super().__init__(modal_title=f'Edit Monitor ({monitor.device_id})',
                          confirm_button_label="Apply",
                          disable_confirm_on_init=True)
         self.monitor = monitor
