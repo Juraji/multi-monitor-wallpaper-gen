@@ -29,9 +29,6 @@ def __bake_color_profile(image: Image.Image, target_profile: ImageCmsProfile):
 
 
 def __fit_image_to_screen_cover(image: Image.Image, screen: MMMonitor) -> Image.Image:
-    if image.width == screen.width and image.height == screen.height:
-        return image
-
     img_aspect = image.width / image.height
     screen_aspect = screen.width / screen.height
 
@@ -57,9 +54,6 @@ def __fit_image_to_screen_cover(image: Image.Image, screen: MMMonitor) -> Image.
 
 
 def __fit_image_to_screen_contain(image: Image.Image, screen: MMMonitor, background_color: str) -> Image.Image:
-    if image.width == screen.width and image.height == screen.height:
-        return image
-
     img_aspect = image.width / image.height
     screen_aspect = screen.width / screen.height
 
@@ -118,11 +112,12 @@ def render_image_set(image_set: MMImageSet,
         img_x_pos = int(screen.x_pos - layout.min_x)
         img_y_pos = int(screen.y_pos - layout.min_y)
 
-        match fit_mode:
-            case MMFitMode.COVER:
-                image = __fit_image_to_screen_cover(image, screen)
-            case MMFitMode.CONTAIN:
-                image = __fit_image_to_screen_contain(image, screen, background_color)
+        if not (image.width == screen.width and image.height == screen.height):
+            match fit_mode:
+                case MMFitMode.COVER:
+                    image = __fit_image_to_screen_cover(image, screen)
+                case MMFitMode.CONTAIN:
+                    image = __fit_image_to_screen_contain(image, screen, background_color)
 
         base_image.paste(image, (img_x_pos, img_y_pos))
 
