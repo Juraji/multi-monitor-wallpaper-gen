@@ -9,7 +9,7 @@ from app.config.constants import GENERATED_OUT_DIR
 from app.config.model import MMFitMode, MMDesktopLayout, MMImageSet
 from app.config.profiles import load_profile
 from app.render.render import render_image_set
-from ._command import Command, SubParsersAction
+from .command import Command, SubParsersAction
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class GenerateCommand(Command):
             help='The starting index when using the "{index}" key in wallpaper names. Defaults to 1.'
         )
 
-    def execute(self, args: Namespace):
+    def execute(self, args: Namespace) -> int:
         logger.info(f'Loading config from {args.configuration}...')
         profile = load_profile(args.configuration)
         output_dir: Path = args.output_dir
@@ -110,3 +110,4 @@ Configuration loaded:
                 future.result()
 
             logger.info('Done!')
+            return 0

@@ -3,8 +3,7 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-from app.commands import GenerateCommand
-from app.commands.init_cmd import InitCommand
+from app.commands import GenerateCommand, Command, InitCommand
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser(description='Batch generate multi-monitor wallpapers')
@@ -25,13 +24,11 @@ if __name__ == '__main__':
         help='Debug mode. Defaults to "False".'
     )
 
-    command_parser = arg_parser.add_subparsers(dest='command')
-
-    # Init command (Monitor detection and config init)
-    init_parser = InitCommand(command_parser)
-
-    # Generate command (Generate wallpapers based on config)
-    generate_cmd = GenerateCommand(command_parser)
+    command_arg_parser = arg_parser.add_subparsers(dest='command')
+    commands: list[Command] = [
+        InitCommand(command_arg_parser),
+        GenerateCommand(command_arg_parser),
+    ]
 
     # Parse arguments
     args = arg_parser.parse_args()
@@ -45,11 +42,10 @@ if __name__ == '__main__':
 
     logging.getLogger('main').info("MM Wallpaper, welcome!")
 
-    match args.command:
-        case init_parser.command:
-            init_parser.execute(args)
-        case generate_cmd.command:
-            generate_cmd.execute(args)
-        case _:
-            arg_parser.print_help()
-            exit(1)
+    for command in commands:
+        if args.command == command.command:
+            return_code = command.execute(args)
+            exit(return_code)
+
+    arg_parser.print_help()
+    exit(1)

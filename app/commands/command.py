@@ -18,5 +18,5 @@ class Command(ABC):
         pass
 
     @abstractmethod
-    def execute(self, args: Namespace):
+    def execute(self, args: Namespace) -> int:
         pass

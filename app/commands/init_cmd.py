@@ -5,7 +5,7 @@ from pathlib import Path
 from app.config.model import MMImageSet, MMProfile
 from app.config.profiles import write_profile
 from app.screens import get_monitor_layout, BACKENDS
-from ._command import Command, SubParsersAction
+from .command import Command, SubParsersAction
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +31,13 @@ class InitCommand(Command):
             help='Overwrite existing configuration file. Defaults to "False".'
         )
 
-    def execute(self, args: Namespace):
+    def execute(self, args: Namespace) -> int:
         config_path: Path = args.configuration
 
         if config_path.exists():
             if not args.force:
                 logger.error(f'Configuration file already exists at {config_path}, remove it before proceeding.')
-                exit(1)
+                return 1
             else:
                 logger.warning(f'Overwriting existing configuration file at {config_path} because of force parameter.')
 
@@ -58,3 +58,4 @@ class InitCommand(Command):
         logger.info(f'Writing config to {config_path}...')
         write_profile(config_path, new_config)
         logger.info(f'Configuration file written to {config_path}.')
+        return 0
