@@ -4,7 +4,6 @@ from pathlib import Path
 import logging
 
 from app.commands import init_cmd, setup_generate_cmd_parser, generate_cmd, setup_init_cmd_parser
-from app.ui.app import MMApp
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser(description='Batch generate multi-monitor wallpapers')
@@ -14,7 +13,7 @@ if __name__ == '__main__':
     arg_parser.add_argument(
         '-c', '--configuration',
         type=Path,
-        default='./config.yaml',
+        default='./profiles/default.yaml',
         required=False,
         help='The configuration file to use. Defaults to ./config.yaml'
     )
@@ -48,9 +47,6 @@ if __name__ == '__main__':
     logging.getLogger('main').info("MM Wallpaper, welcome!")
 
     match args.command:
-        case 'ui':
-            app = MMApp()
-            app.run()
         case 'init':
             init_cmd(args)
         case 'generate':
