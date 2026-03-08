@@ -6,7 +6,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 
 from app.config.constants import GENERATED_OUT_DIR
-from app.config.profiles import load_profile, MMFitMode, MMScreenLayout, MMImageSet
+from app.config.profiles import load_profile, MMFitMode, MMDesktopLayout, MMImageSet
 from app.render.render import render_image_set
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,6 @@ def generate_cmd(args: Namespace):
     bake_icc: bool = args.bake_icc
     max_workers: int = args.max_workers
     start_index: int = args.start_index
-    default_image: Path | None = profile.default_image
     fit_mode: MMFitMode = profile.fit_mode
     background_color: str = profile.background_color
     compression_quality = profile.compression_quality
@@ -66,7 +65,6 @@ Configuration loaded:
   Max workers: {max_workers}
   Bake ICC: {'yes' if bake_icc else 'no'}
   Start index: {start_index}
-  Default image: {default_image}
   Fit mode: {fit_mode}
   Background color: {background_color}
   Compression quality: {compression_quality}
@@ -76,7 +74,7 @@ Configuration loaded:
         logging.info(f'Creating directory {output_dir}...')
         output_dir.mkdir(parents=True)
 
-    screen_layout = MMScreenLayout(profile.monitors)
+    screen_layout = MMDesktopLayout(profile.monitors)
 
     def image_set_handler(image_set: MMImageSet, index: int):
         file_name = image_set.file_name.format(index=index)
@@ -90,7 +88,6 @@ Configuration loaded:
         render_image_set(image_set,
                          set_out_path,
                          screen_layout,
-                         default_image,
                          fit_mode,
                          background_color,
                          bake_icc,

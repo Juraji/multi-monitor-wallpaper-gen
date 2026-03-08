@@ -5,22 +5,26 @@ from app.config.profiles import MMMonitor
 
 def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:
     """
-    Retrieves a list of currently active monitors along with their dimensions and positions using the `xrandr` command.
+    Enumerate the active monitors reported by :program:`xrandr` and return a
+    structured representation of their properties.
 
-    This function parses the output of the ``xrandr --listactivemonitors`` command to extract monitor information,
-    including display location (identifier), x-position, y-position, width, and height in pixels.
-    The result is returned as a list of tuples where each tuple contains the monitor identifier followed by
-    its coordinates and dimensions.
-s
-    :return: List of active monitors represented as tuples containing:
-        - Monitor identifier (string)
-        - X-coordinate position (integer)
-        - Y-coordinate position (integer)
-        - Width in pixels (integer)
-        - Height in pixels (integer)
+    The function executes ``xrandr --listactivemonitors`` and parses its output.
+    Each monitor is represented as a tuple containing:
 
-    :raises Exception: If the ``xrandr`` command fails to execute or returns a non-zero exit code,
-                      containing the error message from stderr.
+    * The monitor identifier string (e.g., ``"DP-4"`` or ``"HDMI-0"``).
+    * The x coordinate of the monitor’s top‑left corner in pixels.
+    * The y coordinate of the monitor’s top‑left corner in pixels.
+    * The width of the monitor in pixels.
+    * The height of the monitor in pixels.
+
+    :Returns:
+        A list of tuples.  Each tuple holds the location string, x and y
+        coordinates, width, and height for one active monitor.
+
+    :Raises:
+        Exception: If ``xrandr`` fails to run or returns a non‑zero exit code,
+        the function raises an exception containing the command’s error
+        message.
     """
     # example:$ xrandr --listactivemonitors
     # Monitors: 2
@@ -68,18 +72,25 @@ s
 
 def _xrandr_list_color_profiles() -> dict[str, str]:
     """
-    Retrieves a mapping of XRandR display devices to their associated ICC color profiles using the `colormgr` command.
+    Return a dictionary mapping XRANDR device names to their active ICC profile paths.
 
-    This function executes the `colormgr get-devices-by-kind display` command to fetch device information,
-    parsing the output to extract object paths (XRandR identifiers) and corresponding ICC profile paths.
-    The result is returned as a dictionary where keys are XRandR device identifiers and values are
-    the associated color profile file paths.
+    The function executes the ``colormgr`` command line tool to query
+    display devices of kind *display*.  Each output block is parsed for an
+    ``XRANDR_name`` metadata entry and the first file path ending in
+    ``.icc`` that appears within the block.  The device name and its
+    corresponding profile path are stored as a key/value pair in the result
+    dictionary.
 
-    The function ensures proper handling of locale settings by setting ``LC_ALL=C`` to guarantee consistent
-    output formatting. If the command execution fails, an exception is raised with the error message from stderr.
+    If the command exits with a non‑zero return code, an :class:`Exception`
+    is raised containing the captured error message.
 
-    .. note::
-        Requires the `colormgr` tool to be installed and available in the system PATH.
+    :return: A dictionary where each key is the XRANDR display identifier
+       (e.g. ``"DP-1"``) and the value is the absolute path to its active
+       ICC profile file.  An empty dictionary indicates that no profiles
+       were found or the command produced no output.
+    :raises Exception: If the ``colormgr`` subprocess fails to execute or
+       returns a non‑zero exit status, an exception containing the error
+       message from standard error is raised.
     """
     result = subprocess.run(
         ['colormgr', 'get-devices-by-kind', 'display'],

@@ -3,12 +3,13 @@ from pathlib import Path
 
 import yaml
 from PIL.ImageCms import ImageCmsProfile
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.config.constants import PROFILES_DIR
 
 
 class MMFitMode(Enum):
+    CENTERED = 'NONE'
     COVER = 'COVER'
     CONTAIN = 'CONTAIN'
 
@@ -34,7 +35,7 @@ class MMMonitor(BaseModel):
             raise RuntimeError(f'Failed to load CMS profile from {self.icc} for screen {self.device_id}') from e
 
 
-class MMScreenLayout:
+class MMDesktopLayout:
     monitors: list[MMMonitor]
     min_x: int
     min_y: int
@@ -56,13 +57,13 @@ class MMScreenLayout:
 
 class MMImageSet(BaseModel):
     file_name: str = Field(description='Image name', min_length=1, default="Wallpaper {index}.jpg")
-    images: list[Path] = Field(description='Paths to images to use for this set', min_length=1, default=[])
+    images: dict[str, Path | None] = Field(description='Paths to images to use for this set', min_length=1)
 
     @field_validator('images', mode='after')
     @classmethod
-    def validate_images_exist(cls, v: list[Path]) -> list[Path]:
-        for img in v:
-            if not img.exists():
+    def validate_images_exist(cls, v: dict[str, Path | None]) -> dict[str, Path | None]:
+        for dev_id, img in v.items():
+            if img and not img.exists():
                 raise ValueError(f'Image file does not exist: {img}')
         return v
 
@@ -70,7 +71,6 @@ class MMImageSet(BaseModel):
 class MMProfile(BaseModel):
     monitors: list[MMMonitor] = Field(description='Screen list', default=[])
     background_color: str = Field(description='Background color', default='black')
-    default_image: Path | None = Field(description='Default image path', default=None)
     fit_mode: MMFitMode = Field(description='Image fit mode', default=MMFitMode.COVER)
     compression_quality: int = Field(description='Compression quality', default=100)
     image_sets: list[MMImageSet] = Field(description='Image set list', default=[])
@@ -85,12 +85,15 @@ class MMProfile(BaseModel):
             raise ValueError('Image set names must not contain duplicate names.')
         return v
 
-    @field_validator('default_image', mode='after')
-    @classmethod
-    def validate_default_image(cls, v: Path | None) -> Path | None:
-        if v is not None and not v.exists():
-            raise ValueError(f'Default image file does not exist: {v}')
-        return v
+    @model_validator(mode='after')
+    def validate_device_ids(self) -> 'MMProfile':
+        # Images are assigned by monitor device ID, we need to check that all set ids are known.
+        device_ids = {m.device_id for m in self.monitors}
+        for s in self.image_sets:
+            for k in s.images.keys():
+                if k not in device_ids:
+                    raise ValueError(f'Image set {s.file_name} contains an unknown device id ({k}).')
+        return self
 
 
 class MMProfileLoadSaveException(Exception):
@@ -108,7 +111,7 @@ def load_profile(config_path: Path) -> MMProfile:
 
         return MMProfile.model_validate(data)
     except Exception as e:
-        raise MMProfileLoadSaveException(f'Failed to load configuration from {config_path}') from e
+        raise MMProfileLoadSaveException(f'Failed to load configuration from {config_path}: {e}') from e
 
 
 def write_profile(config_path: Path, data: MMProfile):

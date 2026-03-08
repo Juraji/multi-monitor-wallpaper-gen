@@ -44,11 +44,8 @@ def init_cmd(args: Namespace):
         # Add a single example set
         image_sets=[
             MMImageSet.model_construct(
-                file_name='My {index} wallpaper.jpg',
-                images=[
-                    Path('/path/to/image1.png'),
-                    Path('/path/to/image2.png')
-                ])
+                file_name='My wallpaper {index}.jpg',
+                images={[s.device_id]: None for s in screens})
         ]
     )
 
