@@ -1,13 +1,13 @@
+import logging
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-import logging
 
-from app.commands import init_cmd, setup_generate_cmd_parser, generate_cmd, setup_init_cmd_parser
+from app.commands import GenerateCommand
+from app.commands.init_cmd import InitCommand
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser(description='Batch generate multi-monitor wallpapers')
-    command_parsers = arg_parser.add_subparsers(dest='command')
 
     # Global opts (Needed by all commands)
     arg_parser.add_argument(
@@ -25,16 +25,15 @@ if __name__ == '__main__':
         help='Debug mode. Defaults to "False".'
     )
 
+    command_parser = arg_parser.add_subparsers(dest='command')
+
     # Init command (Monitor detection and config init)
-    init_parser = command_parsers.add_parser('init', description='Detect environment and create initial configuration')
-    setup_init_cmd_parser(init_parser)
+    init_parser = InitCommand(command_parser)
 
     # Generate command (Generate wallpapers based on config)
-    generate_parser = command_parsers.add_parser('generate', description='Generate wallpapers')
-    setup_generate_cmd_parser(generate_parser)
+    generate_cmd = GenerateCommand(command_parser)
 
-    ui_parser = command_parsers.add_parser('ui', description='Start in UI mode (Experimental)')
-
+    # Parse arguments
     args = arg_parser.parse_args()
 
     # Setup logging
@@ -47,10 +46,10 @@ if __name__ == '__main__':
     logging.getLogger('main').info("MM Wallpaper, welcome!")
 
     match args.command:
-        case 'init':
-            init_cmd(args)
-        case 'generate':
-            generate_cmd(args)
+        case init_parser.command:
+            init_parser.execute(args)
+        case generate_cmd.command:
+            generate_cmd.execute(args)
         case _:
             arg_parser.print_help()
             exit(1)

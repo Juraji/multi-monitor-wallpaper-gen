@@ -1,4 +1,4 @@
-from app.config.model import MMMonitor
+from app.config import MMMonitor
 
 BACKENDS = [
     'xrandr',

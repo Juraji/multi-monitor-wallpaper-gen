@@ -2,8 +2,8 @@ from pathlib import Path
 
 import yaml
 
-from app.config.constants import PROFILES_DIR
-from app.config.model import MMProfile
+from .constants import PROFILES_DIR
+from .model import MMProfile
 
 
 class MMProfileLoadSaveException(Exception):

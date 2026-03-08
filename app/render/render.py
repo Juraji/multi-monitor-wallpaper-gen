@@ -2,10 +2,9 @@ from pathlib import Path
 
 from PIL import Image
 
-from app.config.constants import STANDARD_SRGB_PROFILE, TARGET_IMAGE_MODE
-from app.config.model import MMFitMode, MMDesktopLayout, MMImageSet
-from app.render.fitting import __apply_fit_mode
-from app.render.icc import __bake_color_profile
+from app.config import MMFitMode, MMDesktopLayout, MMImageSet, STANDARD_SRGB_PROFILE, TARGET_IMAGE_MODE
+from .fitting import __apply_fit_mode
+from .icc import __bake_color_profile
 
 
 def render_image_set(image_set: MMImageSet,
