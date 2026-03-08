@@ -1,12 +1,15 @@
 from abc import ABC, abstractmethod
 # noinspection PyProtectedMember
 from argparse import Namespace, _SubParsersAction, ArgumentParser
+from logging import Logger, getLogger
 
 type SubParsersAction = _SubParsersAction[ArgumentParser]
 
 class Command(ABC):
+    logger: Logger
 
     def __init__(self, sub_parsers: SubParsersAction, command: str, description: str):
+        self.logger = getLogger(self.__class__.__name__)
         self.command = command
         self.description = description
 

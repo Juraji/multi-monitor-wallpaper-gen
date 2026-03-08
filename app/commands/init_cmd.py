@@ -7,9 +7,6 @@ from app.config.profiles import write_profile
 from app.screens import get_monitor_layout, BACKENDS
 from .command import Command, SubParsersAction
 
-logger = logging.getLogger(__name__)
-
-
 class InitCommand(Command):
 
     def __init__(self, sub_parsers: SubParsersAction):
@@ -36,14 +33,14 @@ class InitCommand(Command):
 
         if config_path.exists():
             if not args.force:
-                logger.error(f'Configuration file already exists at {config_path}, remove it before proceeding.')
+                self.logger.error(f'Configuration file already exists at {config_path}, remove it before proceeding.')
                 return 1
             else:
-                logger.warning(f'Overwriting existing configuration file at {config_path} because of force parameter.')
+                self.logger.warning(f'Overwriting existing configuration file at {config_path} because of force parameter.')
 
-        logger.info(f'Detecting screen layout using backend {args.backend}..')
+        self.logger.info(f'Detecting screen layout using backend {args.backend}..')
         screens = get_monitor_layout(args.backend)
-        logger.info(f'Found {len(screens)} screens.')
+        self.logger.info(f'Found {len(screens)} screens.')
 
         new_config = MMProfile(
             monitors=screens,
@@ -55,7 +52,7 @@ class InitCommand(Command):
             ]
         )
 
-        logger.info(f'Writing config to {config_path}...')
+        self.logger.info(f'Writing config to {config_path}...')
         write_profile(config_path, new_config)
-        logger.info(f'Configuration file written to {config_path}.')
+        self.logger.info(f'Configuration file written to {config_path}.')
         return 0

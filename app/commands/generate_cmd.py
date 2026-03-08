@@ -11,9 +11,6 @@ from app.config.profiles import load_profile
 from app.render.render import render_image_set
 from .command import Command, SubParsersAction
 
-logger = logging.getLogger(__name__)
-
-
 class GenerateCommand(Command):
     def __init__(self, sub_parsers: SubParsersAction):
         super().__init__(sub_parsers, 'generate', 'Generate wallpapers')
@@ -51,7 +48,7 @@ class GenerateCommand(Command):
         )
 
     def execute(self, args: Namespace) -> int:
-        logger.info(f'Loading config from {args.configuration}...')
+        self.logger.info(f'Loading config from {args.configuration}...')
         profile = load_profile(args.configuration)
         output_dir: Path = args.output_dir
         replace_images: bool = args.replace
@@ -62,7 +59,7 @@ class GenerateCommand(Command):
         background_color: str = profile.background_color
         compression_quality = profile.compression_quality
 
-        logger.info(f"""\
+        self.logger.info(f"""\
 Configuration loaded:
   Screens: {len(profile.monitors)}
   Image sets: {len(profile.image_sets)}
@@ -86,10 +83,10 @@ Configuration loaded:
             set_out_path: Path = output_dir / file_name
             if set_out_path.exists():
                 if not replace_images:
-                    logger.info(f'Image {file_name} already exists, skipping generation.')
+                    self.logger.info(f'Image {file_name} already exists, skipping generation.')
                     return
 
-            logger.info(f'Generating image {file_name}...')
+            self.logger.info(f'Generating image {file_name}...')
             render_image_set(image_set,
                              set_out_path,
                              screen_layout,
@@ -109,5 +106,5 @@ Configuration loaded:
             for future in futures:
                 future.result()
 
-            logger.info('Done!')
+            self.logger.info('Done!')
             return 0
