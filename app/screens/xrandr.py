@@ -1,6 +1,6 @@
 import subprocess
 
-from app.config.profiles import MMMonitor
+from app.config.model import MMMonitor
 
 
 def _xrandr_list_active_monitors() -> list[tuple[str, int, int, int, int]]:

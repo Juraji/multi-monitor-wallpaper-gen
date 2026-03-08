@@ -6,7 +6,8 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 
 from app.config.constants import GENERATED_OUT_DIR
-from app.config.profiles import load_profile, MMFitMode, MMDesktopLayout, MMImageSet
+from app.config.profiles import load_profile
+from app.config.model import MMFitMode, MMDesktopLayout, MMImageSet
 from app.render.render import render_image_set
 
 logger = logging.getLogger(__name__)

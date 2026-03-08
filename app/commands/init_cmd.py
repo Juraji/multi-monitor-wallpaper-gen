@@ -2,7 +2,8 @@ import logging
 from argparse import Namespace, ArgumentParser
 from pathlib import Path
 
-from app.config.profiles import MMProfile, MMImageSet, write_profile
+from app.config.profiles import write_profile
+from app.config.model import MMImageSet, MMProfile
 from app.screens import get_monitor_layout, BACKENDS
 
 logger = logging.getLogger(__name__)
