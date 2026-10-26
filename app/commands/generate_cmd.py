@@ -69,8 +69,7 @@ Configuration loaded:
   Start index: {start_index}
   Fit mode: {fit_mode}
   Background color: {background_color}
-  Compression quality: {compression_quality}
-            """)
+  Compression quality: {compression_quality}""")
 
         if not output_dir.exists():
             logging.info(f'Creating directory {output_dir}...')

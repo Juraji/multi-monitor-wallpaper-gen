@@ -48,7 +48,7 @@ class InitCommand(Command):
             image_sets=[
                 MMImageSet.model_construct(
                     file_name='My wallpaper {index}.jpg',
-                    images={[s.device_id]: None for s in screens})
+                    images={s.device_id: None for s in screens})
             ]
         )
 
